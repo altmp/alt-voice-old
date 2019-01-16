@@ -1,0 +1,9 @@
+[submodule "vendor/portaudio"]
+	path = vendor/portaudio
+	url = https://github.com/altmp/portaudio.git
+[submodule "vendor/openal"]
+	path = vendor/openal
+	url = https://github.com/altmp/openal-soft.git
+[submodule "vendor/opus"]
+	path = vendor/opus
+	url = https://github.com/altmp/opus.git

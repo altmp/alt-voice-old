@@ -1,0 +1,27 @@
+#pragma once
+#include "IStreamPlayer.h"
+#include "I3DSoundOutput.h"
+#include "ISoundInput.h"
+
+#ifndef ALT_VOICE_API
+#if defined(ALT_LIB_STATIC)
+#define ALT_VOICE_API
+#elif defined(ALT_VOICE_LIB)
+#define ALT_VOICE_API __declspec(dllexport)
+#else
+#define ALT_VOICE_API __declspec(dllimport)
+#endif
+#endif
+
+#if defined(__cplusplus)
+extern "C" {
+#endif
+
+ALT_VOICE_API I3DSoundOutput* CreateSoundOutput(int sampleRate);
+ALT_VOICE_API ISoundInput* CreateSoundInput(int sampleRate, int framesPerBuffer, int bitrate);
+ALT_VOICE_API void DestroySoundOutput(I3DSoundOutput* output);
+ALT_VOICE_API void DestroySoundInput(ISoundInput* input);
+
+#if defined(__cplusplus)
+}
+#endif

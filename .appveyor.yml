@@ -1,8 +1,5 @@
 image: Visual Studio 2017
 
-branches:
-  - gh-pages
-
 build_script: vcbuild.bat
 
 artifacts:

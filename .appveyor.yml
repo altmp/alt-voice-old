@@ -1,7 +1,7 @@
 image: Visual Studio 2017
 
 build_script:
-- ps: vcbuild.ps1
+- ps: powershell -executionpolicy bypass -File .\vcbuild.ps1
 
 clone_script:
 - cmd: git clone -q --recursive --branch=%APPVEYOR_REPO_BRANCH% https://github.com/%APPVEYOR_REPO_NAME%.git %APPVEYOR_BUILD_FOLDER%

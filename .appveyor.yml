@@ -3,12 +3,6 @@ image: Visual Studio 2017
 branches:
   - gh-pages
 
-platform: x64
-configuration: Release
-
-build:
-  parallel: true
-
 build_script: vcbuild.bat
 
 artifacts:

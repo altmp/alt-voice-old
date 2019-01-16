@@ -2,6 +2,8 @@ image: Visual Studio 2017
 
 build_script: "& .\\vcbuild.bat"
 
+clone_depth: 5
+
 artifacts:
   - path: bin\alt-voice.dll
     name: alt-voice

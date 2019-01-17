@@ -1,6 +1,8 @@
 #pragma once
-#include <portaudio.h>
 #include <opus.h>
+#include <AL/al.h>
+#include <AL/alc.h>
+#include <AL/alext.h>
 
 #include "ISoundInput.h"
 #include "CRingBuffer.h"
@@ -12,23 +14,23 @@ using Sample = float;
 
 class CSoundInput: public ISoundInput
 {
-	static int OnInputCallback(const void *inputBuffer, void *outputBuffer,
-		unsigned long framesPerBuffer,
-		const PaStreamCallbackTimeInfo* timeInfo,
-		PaStreamCallbackFlags statusFlags,
-		void *userData);
+	void OnVoiceInput();
 	uint32_t _sampleRate;
 	uint32_t _framesPerBuffer;
 	uint32_t _bitRate;
-	uint32_t _micLever;
 
 	float micGain = 1.f;
 
-	PaStream* stream = nullptr;
 	OpusEncoder* enc = nullptr;
 
 	OnVoiceCallback cb = nullptr;
-	RingBuffer<Sample, 96000> _ringBuffer;
+	RingBuffer<Sample, 100000> _ringBuffer;
+
+	ALCdevice* inputDevice = nullptr;
+	std::thread* inputStreamThread = nullptr;
+	Sample* transferBuffer = nullptr;
+	bool inputActive = false;
+	int sleepTime = 0;
 public:
 	CSoundInput(int sampleRate, int framesPerBuffer, int bitrate);
 	~CSoundInput();
@@ -36,8 +38,6 @@ public:
 	bool EnableInput() override;
 	bool DisableInput() override;
 	void ChangeMicGain(float gain) override;
-
-	float GetCPULoad() override;
 
 	void RegisterCallback(OnVoiceCallback callback) override;
 };

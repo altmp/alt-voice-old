@@ -50,8 +50,8 @@ add_library(
   ${PROJECT_SOURCE_FILES}
 )
 
+target_link_libraries(${PROJECT_NAME} WinMM.lib)
 target_link_libraries(${PROJECT_NAME} OpenAL32.lib)
-target_link_libraries(${PROJECT_NAME} portaudio_static_x64.lib)
 target_link_libraries(${PROJECT_NAME} opus.lib)
 
 set_target_properties(${PROJECT_NAME} PROPERTIES

@@ -1,78 +1,58 @@
 #include "CSoundInput.h"
 #include <iostream>
+#include <Windows.h>
 
-int CSoundInput::OnInputCallback(const void * inputBuffer, void * outputBuffer, unsigned long framesPerBuffer, const PaStreamCallbackTimeInfo * timeInfo, PaStreamCallbackFlags statusFlags, void * userData)
+void CSoundInput::OnVoiceInput()
 {
-	CSoundInput* input = (CSoundInput*)userData;
-
+	static int catchedFrames = 0;
 	static Sample opusFrameBuffer[FRAME_SIZE_OPUS];
-	unsigned char packet[MAX_PACKET_SIZE];
+	static unsigned char packet[MAX_PACKET_SIZE];
 
-	const Sample* pcm = (const Sample*)inputBuffer;
-	float maxVal = -1.f;
-	for (unsigned long i = 0; i < framesPerBuffer; ++i)
+	for (;;)
 	{
-		if (pcm[i] > maxVal)
-			maxVal = pcm[i];
+		alcGetIntegerv(inputDevice, ALC_CAPTURE_SAMPLES, 1, &catchedFrames);
+		if (catchedFrames >= _framesPerBuffer)
+		{
+			alcCaptureSamples(inputDevice, transferBuffer, _framesPerBuffer);
+			float micLevel = -1.f;
+			for (int i = 0; i < _framesPerBuffer; ++i)
+			{
+				if (transferBuffer[i] > micLevel)
+					micLevel = transferBuffer[i];
+			}
+			
+			for (int i = 0; i < _framesPerBuffer; ++i)
+				transferBuffer[i] = transferBuffer[i] * micGain;
+
+			_ringBuffer.Write((const Sample*)transferBuffer, _framesPerBuffer);
+
+			while (_ringBuffer.BytesToRead() >= FRAME_SIZE_OPUS)
+			{
+				_ringBuffer.Read((Sample*)opusFrameBuffer, FRAME_SIZE_OPUS);
+				int len = opus_encode_float(enc, opusFrameBuffer, FRAME_SIZE_OPUS, packet, MAX_PACKET_SIZE);
+
+				if (len < 0 || len > MAX_PACKET_SIZE)
+					return;
+
+				if (cb)
+					cb(packet, len, micLevel);
+			}
+		}
+		Sleep(sleepTime);
 	}
-
-	for (int i = 0; i < framesPerBuffer; ++i)
-		((Sample*)inputBuffer)[i] = ((Sample*)inputBuffer)[i] * input->micGain;
-
-	input->_ringBuffer.Write((const Sample*)inputBuffer, framesPerBuffer);
-
-	while (input->_ringBuffer.BytesToRead() >= FRAME_SIZE_OPUS)
-	{
-		input->_ringBuffer.Read((Sample*)opusFrameBuffer, FRAME_SIZE_OPUS);
-		int len = opus_encode_float(input->enc, opusFrameBuffer, FRAME_SIZE_OPUS, packet, MAX_PACKET_SIZE);
-
-		if (len < 0 || len > MAX_PACKET_SIZE)
-			return PaStreamCallbackResult::paAbort;
-
-		if (input->cb)
-			input->cb(packet, len, maxVal);
-	}
-
-	return PaStreamCallbackResult::paContinue;
 }
 
 CSoundInput::CSoundInput(int sampleRate, int framesPerBuffer, int bitrate): _sampleRate(sampleRate), _framesPerBuffer(framesPerBuffer), _bitRate(bitrate)
 {
-	setlocale(LC_ALL, "ru_RU");
-	PaError err = Pa_Initialize();
-	if (err != paNoError)
-		throw std::runtime_error("PortAudio initialization error");
+	sleepTime = (framesPerBuffer / (sampleRate / 1000)) / 2;
 
-	PaStreamParameters inputParameters;
+	inputDevice = alcCaptureOpenDevice(NULL, sampleRate, AL_FORMAT_MONO_FLOAT32, framesPerBuffer);
 
-	PaDeviceIndex device = Pa_GetDefaultInputDevice();
+	if (!inputDevice)
+		throw std::runtime_error("Capture device open error");
 
-	if (device == paNoDevice)
-		throw std::runtime_error("Default input device not found");
-
-	const PaDeviceInfo* deviceInfo = Pa_GetDeviceInfo(device);
-	std::cout << deviceInfo->name << std::endl;
-
-	inputParameters.device = device;
-	inputParameters.channelCount = 1;
-	inputParameters.sampleFormat = paFloat32;
-	inputParameters.suggestedLatency = Pa_GetDeviceInfo(inputParameters.device)->defaultLowInputLatency;
-	inputParameters.hostApiSpecificStreamInfo = NULL;
-
-	err = Pa_OpenStream(
-		&stream,
-		&inputParameters,
-		NULL,
-		sampleRate,
-		_framesPerBuffer,
-		paClipOff | paDitherOff,
-		OnInputCallback,
-		this);
-	if (err != paNoError)
-	{
-		const char* errorText = Pa_GetErrorText(err);
-		throw std::runtime_error(errorText);
-	}
+	inputStreamThread = new std::thread(&CSoundInput::OnVoiceInput, this);
+	inputStreamThread->detach();
 
 	int opusErr;
 	enc = opus_encoder_create(_sampleRate, 1, OPUS_APPLICATION_VOIP, &opusErr);
@@ -81,40 +61,37 @@ CSoundInput::CSoundInput(int sampleRate, int framesPerBuffer, int bitrate): _sam
 
 	if (opus_encoder_ctl(enc, OPUS_SET_BITRATE(_bitRate)) != OPUS_OK)
 		throw std::runtime_error("Opus set bitrate error");
+
+	transferBuffer = new Sample[_framesPerBuffer];
 }
 
 
 CSoundInput::~CSoundInput()
 {
-	if (stream)
-	{
-		if(Pa_IsStreamActive(stream))
-			Pa_AbortStream(stream);
-		Pa_CloseStream(stream);
-		stream = nullptr;
-	}
-	Pa_Terminate();
+	delete inputStreamThread;
+
+	alcCaptureCloseDevice(inputDevice);
 	opus_encoder_destroy(enc);
 }
 
 bool CSoundInput::EnableInput()
 {
-	int stopped = Pa_IsStreamStopped(stream);
-	if (stopped == 1)
+	if (!inputActive)
 	{
-		PaError err = Pa_StartStream(stream);
-		return err == paNoError;
+		inputActive = true;
+		alcCaptureStart(inputDevice);
+		return true;
 	}
 	return false;
 }
 
 bool CSoundInput::DisableInput()
 {
-	int streamActive = Pa_IsStreamActive(stream);
-	if (streamActive == 1)
+	if (inputActive)
 	{
-		PaError err = Pa_StopStream(stream);
-		return err == paNoError;
+		inputActive = false;
+		alcCaptureStop(inputDevice);
+		return true;
 	}
 	return false;
 }
@@ -122,11 +99,6 @@ bool CSoundInput::DisableInput()
 void CSoundInput::ChangeMicGain(float gain)
 {
 	micGain = gain;
-}
-
-float CSoundInput::GetCPULoad()
-{
-	return (float)Pa_GetStreamCpuLoad(stream);
 }
 
 void CSoundInput::RegisterCallback(OnVoiceCallback callback)

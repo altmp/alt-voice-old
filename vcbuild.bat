@@ -1,27 +1,24 @@
 @echo off
 echo Building opus library
-SET WinSDKVersion=10.0.17763.0
-msbuild ./vendor/opus/win32/VS2015/opus.vcxproj /p:PlatformToolset=v141 /p:Configuration=Release /p:Platform=x64 /p:OutDir=../../../../libs/
-
-echo Building Portaudio library
-mkdir temp/portaudio
-cd temp/portaudio
-cmake -G "Visual Studio 15 Win64" ../../vendor/portaudio/
+if not exist "./temp/opus" mkdir "./temp/opus"
+cd ./temp/opus
+cmake -G "Visual Studio 15 Win64" ../../vendor/opus/
 cd ../../
-msbuild ./temp/portaudio/portaudio_static.vcxproj /p:PlatformToolset=v141 /p:Configuration=Release /p:Platform=x64 /p:OutDir=../../libs/
+msbuild ./temp/opus/opus.vcxproj /p:PlatformToolset=v141 /p:Configuration=Release /p:Platform=x64 /p:OutDir=../../libs/
 
 echo Building OpenAL library
-mkdir temp/openal
-cd temp/openal
+if not exist "./temp/openal" mkdir "./temp/openal"
+cd ./temp/openal
 cmake -G "Visual Studio 15 Win64" -DLIBTYPE=STATIC ../../vendor/openal/
 cd ../../
 msbuild ./temp/openal/OpenAL.vcxproj /p:PlatformToolset=v141 /p:Configuration=Release /p:Platform=x64 /p:OutDir=../../libs/
 
 echo Building alt-voice library
-mkdir temp/alt-voice
-cd temp/alt-voice
+if not exist "./temp/alt-voice" mkdir "./temp/alt-voice"
+cd ./temp/alt-voice
 cmake -G "Visual Studio 15 Win64" ../../
 cd ../../
 msbuild ./temp/alt-voice/alt-voice.vcxproj /p:PlatformToolset=v141 /p:Configuration=Release /p:Platform=x64 /p:OutDir=../../bin/
+copy /y .\temp\alt-voice\Release\alt-voice.lib .\bin\alt-voice.lib
 
-echo alt-voice built
+echo "alt-voice built"

@@ -9,3 +9,5 @@ if errorlevel 1 (
    echo Release build error
    exit /b %errorlevel%
 )
+
+7z a .\bin\alt-voice.zip .\bin\*\*.dll .\bin\*\*.lib

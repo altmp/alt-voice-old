@@ -1,3 +1,4 @@
+@echo off
 call vcbuild.bat Debug
 if errorlevel 1 (
    echo Debug build error

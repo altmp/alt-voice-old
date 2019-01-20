@@ -4,6 +4,7 @@ if not exist "./temp/opus" mkdir "./temp/opus"
 cd ./temp/opus
 cmake -G "Visual Studio 15 Win64" ../../vendor/opus/
 cd ../../
+".\vendor\opus\win32\genversion.bat" ".\vendor\opus\win32\version.h" PACKAGE_VERSION
 msbuild ./temp/opus/opus.vcxproj /p:PlatformToolset=v141 /p:Configuration=%1 /p:Platform=x64 /p:OutDir=../../libs/%1/
 
 echo Building OpenAL library

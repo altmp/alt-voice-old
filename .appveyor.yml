@@ -1,0 +1,12 @@
+image: Visual Studio 2017
+
+build_script:
+- cmd: vcbuild-ci.bat
+
+clone_script:
+- cmd: git clone -q --recursive --branch=%APPVEYOR_REPO_BRANCH% https://github.com/%APPVEYOR_REPO_NAME%.git %APPVEYOR_BUILD_FOLDER%
+- cmd: git checkout -qf %APPVEYOR_REPO_COMMIT%
+
+artifacts:
+  - path: bin\alt-voice.zip
+    name: alt-voice binaries

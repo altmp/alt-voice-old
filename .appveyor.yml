@@ -8,5 +8,11 @@ clone_script:
 - cmd: git checkout -qf %APPVEYOR_REPO_COMMIT%
 
 artifacts:
-  - path: bin\alt-voice.dll
-    name: alt-voice
+  - path: bin\Debug\alt-voice.dll
+    name: alt-voiced.dll
+  - path: bin\Debug\alt-voice.lib
+    name: alt-voiced.lib
+  - path: bin\Release\alt-voice.dll
+    name: alt-voiced.dll
+  - path: bin\Release\alt-voice.lib
+    name: alt-voiced.lib

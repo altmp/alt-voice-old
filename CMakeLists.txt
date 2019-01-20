@@ -38,11 +38,10 @@ include_directories(
   ./include
   ${PROJECT_SOURCE_DIR}/vendor/openal/include/
   ${PROJECT_SOURCE_DIR}/vendor/opus/include/
-  ${PROJECT_SOURCE_DIR}/vendor/portaudio/include/
 )
 
 link_directories(
-  ${PROJECT_SOURCE_DIR}/libs
+  ${PROJECT_SOURCE_DIR}/libs/${CMAKE_BUILD_TYPE}
 )
 
 add_library(

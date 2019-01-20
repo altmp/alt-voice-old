@@ -1,2 +1,2 @@
-vcbuild.bat Debug
-vcbuild.bat Release
+call vcbuild.bat Debug
+call vcbuild.bat Release

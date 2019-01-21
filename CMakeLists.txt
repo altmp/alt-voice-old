@@ -49,9 +49,15 @@ add_library(
   ${PROJECT_SOURCE_FILES}
 )
 
+add_subdirectory(./vendor/opus ./libs/${CMAKE_BUILD_TYPE})
+add_subdirectory(./vendor/openal ./libs/${CMAKE_BUILD_TYPE})
+
+if (WIN32)
 target_link_libraries(${PROJECT_NAME} WinMM.lib)
-target_link_libraries(${PROJECT_NAME} OpenAL32.lib)
-target_link_libraries(${PROJECT_NAME} opus.lib)
+endif()
+
+target_link_libraries(${PROJECT_NAME} OpenAL)
+target_link_libraries(${PROJECT_NAME} opus)
 
 set_target_properties(${PROJECT_NAME} PROPERTIES
   CXX_STANDARD 17

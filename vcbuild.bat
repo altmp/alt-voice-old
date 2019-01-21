@@ -14,7 +14,7 @@ if errorlevel 1 (
 echo Building OpenAL library
 if not exist "./temp/openal" mkdir "./temp/openal"
 cd ./temp/openal
-cmake -G "Visual Studio 15 Win64" -DLIBTYPE=STATIC -DALSOFT_BACKEND_DSOUND=OFF -DALSOFT_BACKEND_WASAPI=OFF  ../../vendor/openal/
+cmake -G "Visual Studio 15 Win64" -DLIBTYPE=STATIC ../../vendor/openal/
 cd ../../
 msbuild ./temp/openal/OpenAL.vcxproj /p:PlatformToolset=v141 /p:Configuration=%1 /p:Platform=x64 /p:OutDir=../../libs/%1/
 if errorlevel 1 (

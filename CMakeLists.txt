@@ -7,8 +7,10 @@ set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
 include(cotire)
 
+if (MSVC)
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MD /GL /LTCG /Zi /O2")
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MDd")
+endif()
 
 add_definitions(-DALT_VOICE_LIB)
 add_definitions(-DAL_LIBTYPE_STATIC)

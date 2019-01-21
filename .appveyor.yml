@@ -10,3 +10,13 @@ clone_script:
 artifacts:
   - path: bin\alt-voice.zip
     name: alt-voice binaries
+
+deploy:
+- provider: GitHub
+  release: alt-voice-$(appveyor_build_version)
+  auth_token:
+    secure: naIK6AojdsOM0/maAaD+T+C3y7Ak9AsJoLHVgyk9aEVh30MRNX3Hiy11nXU7+/ri
+  artifact: /.*/
+  draft: true
+  on:
+    branch: master

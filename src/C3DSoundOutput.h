@@ -7,6 +7,7 @@
 
 #include "I3DSoundOutput.h"
 
+
 class CStreamPlayer;
 
 class C3DSoundOutput: public I3DSoundOutput
@@ -20,8 +21,12 @@ class C3DSoundOutput: public I3DSoundOutput
 	ALfloat listenerPos[3] = { 0.f, 0.f, 0.f };
 	ALfloat listenerVel[3] = { 0.f, 0.f, 0.f };
 	ALfloat listenerOri[6] = { 0.f, 0.f, 0.f, 0.f, 0.f, 0.f };
+
+	ALuint *sources = nullptr;
+	ALuint _sourcesCount;
+	std::queue<ALuint> freeSources;
 public:
-	C3DSoundOutput(int sampleRate);
+	C3DSoundOutput(int sampleRate, int sourcesCount);
 	~C3DSoundOutput();
 
 	void SetMyPosition(float x, float y, float z) override;
@@ -32,5 +37,9 @@ public:
 
 	IStreamPlayer* CreateStreamPlayer() override;
 	void DeleteStreamPlayer(IStreamPlayer* streamPlayer) override;
+
+private:
+	void FreeSource(ALuint source);
+	bool GetSource(ALuint& source);
 };
 

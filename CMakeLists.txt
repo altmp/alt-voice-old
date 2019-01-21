@@ -36,14 +36,10 @@ GroupSources(${PROJECT_SOURCE_DIR}/src "Source Files")
 GroupSources(${PROJECT_SOURCE_DIR}/include "Include")
 
 include_directories(
-  ./src
-  ./include
+  ${PROJECT_SOURCE_DIR}/src
+  ${PROJECT_SOURCE_DIR}/include
   ${PROJECT_SOURCE_DIR}/vendor/openal/include/
   ${PROJECT_SOURCE_DIR}/vendor/opus/include/
-)
-
-link_directories(
-  ${PROJECT_SOURCE_DIR}/libs/${CMAKE_BUILD_TYPE}
 )
 
 add_library(
@@ -51,8 +47,9 @@ add_library(
   ${PROJECT_SOURCE_FILES}
 )
 
-add_subdirectory(./vendor/opus ./libs/${CMAKE_BUILD_TYPE}/opus)
-add_subdirectory(./vendor/openal ./libs/${CMAKE_BUILD_TYPE}/openal)
+add_subdirectory(${PROJECT_SOURCE_DIR}/vendor/opus ${PROJECT_SOURCE_DIR}/libs/${CMAKE_BUILD_TYPE}/opus)
+set(LIBTYPE STATIC)
+add_subdirectory(${PROJECT_SOURCE_DIR}/vendor/openal ${PROJECT_SOURCE_DIR}/libs/${CMAKE_BUILD_TYPE}/openal)
 
 if (WIN32)
 target_link_libraries(${PROJECT_NAME} WinMM.lib)
@@ -61,10 +58,21 @@ endif()
 target_link_libraries(${PROJECT_NAME} OpenAL)
 target_link_libraries(${PROJECT_NAME} opus)
 
+add_executable(
+  3d-echo-test
+  ${PROJECT_SOURCE_DIR}/examples/3d-echo.cpp
+)
+
+if (WIN32)
+target_link_libraries(3d-echo-test WinMM.lib)
+endif()
+
+target_link_libraries(3d-echo-test alt-voice)
+
 set_target_properties(${PROJECT_NAME} PROPERTIES
   CXX_STANDARD 17
-  RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/Debug/client"
-  RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/Release/client"
+  RUNTIME_OUTPUT_DIRECTORY_DEBUG "${PROJECT_SOURCE_DIR}/bin/Debug/"
+  RUNTIME_OUTPUT_DIRECTORY_RELEASE "${PROJECT_SOURCE_DIR}/bin/Release/"
 )
 
 cotire(${PROJECT_NAME})

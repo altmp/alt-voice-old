@@ -1,5 +1,4 @@
 dist: xenial
-install: make get-deps
 language: cpp
 compiler: gcc
 script: ./build.sh

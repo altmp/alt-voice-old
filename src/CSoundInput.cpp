@@ -41,7 +41,11 @@ void CSoundInput::OnVoiceInput()
 					cb(packet, len, micLevel);
 			}
 		}
+#ifdef _WIN32
 		Sleep(sleepTime);
+#else
+		usleep(sleepTime * 1000);
+#endif
 	}
 }
 

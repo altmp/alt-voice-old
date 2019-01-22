@@ -1,6 +1,9 @@
 #include "CSoundInput.h"
 #include <iostream>
+
+#ifdef _WIN32
 #include <Windows.h>
+#endif
 
 void CSoundInput::OnVoiceInput()
 {

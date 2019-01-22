@@ -1,4 +1,6 @@
 #pragma once
+#include <thread>
+
 #include <opus.h>
 #include <AL/al.h>
 #include <AL/alc.h>

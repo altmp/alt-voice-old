@@ -20,6 +20,9 @@ void OnVoiceInput(const void* buffer, int length, float micLevel)
 		streamPlayer2->PushOpusBuffer(buffer, length);
 }
 
+float posOnCircle = 0;
+const float radius = 5.f;
+
 int main()
 {
 	int sampleRate = 24000;
@@ -51,10 +54,7 @@ int main()
 
 	soundOutput->UpdateMe();
 
-	float posOnCircle = 0;
-	const float radius = 5.f;
-
-	std::thread([&]() {
+	std::thread([]() {
 		while (true)
 		{
             std::this_thread::sleep_for(std::chrono::milliseconds(20));

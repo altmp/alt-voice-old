@@ -1,11 +1,6 @@
 #include "CSoundInput.h"
-#include <iostream>
-
-#ifdef _WIN32
-#include <Windows.h>
-#else
-#include <unistd.h>
-#endif
+#include <thread>
+#include <chrono>
 
 void CSoundInput::OnVoiceInput()
 {
@@ -43,11 +38,7 @@ void CSoundInput::OnVoiceInput()
 					cb(packet, len, micLevel);
 			}
 		}
-#ifdef _WIN32
-		Sleep(sleepTime);
-#else
-		usleep(sleepTime * 1000);
-#endif
+		std::this_thread::sleep_for(std::chrono::milliseconds(sleepTime));
 	}
 }
 

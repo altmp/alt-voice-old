@@ -22,6 +22,9 @@ CStreamPlayer::CStreamPlayer()
 
 CStreamPlayer::~CStreamPlayer()
 {
+	if(hasSource)
+		soundOutput->FreeSource(source);
+		
 	alDeleteBuffers(NUM_BUFFERS, buffers);
 }
 

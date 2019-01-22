@@ -8,10 +8,14 @@
 #ifndef ALT_VOICE_API
 #if defined(ALT_LIB_STATIC)
 #define ALT_VOICE_API
-#elif defined(ALT_VOICE_LIB)
+#elif defined(_WIN32)
+#if defined(ALT_VOICE_LIB)
 #define ALT_VOICE_API __declspec(dllexport)
 #else
 #define ALT_VOICE_API __declspec(dllimport)
+#endif
+#else
+#define AL_API extern
 #endif
 #endif
 

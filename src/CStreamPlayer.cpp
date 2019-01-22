@@ -1,17 +1,22 @@
 #include "CStreamPlayer.h"
 #include <iostream>
 
+C3DSoundOutput* CStreamPlayer::soundOutput = nullptr;
+
+
 CStreamPlayer::CStreamPlayer()
 {
 	alGenBuffers(NUM_BUFFERS, buffers);
 	for (uint16_t i = 0; i < NUM_BUFFERS; ++i)
-	{
 		freeBuffers.push(buffers[i]);
-		std::cout << "Buffer [ID: " << buffers[i] << "] allocated" << std::endl;
-	}
 
 	if (alGetError() != AL_NO_ERROR)
 		throw std::runtime_error("Could not create buffers");
+
+	int opusErr;
+	dec = opus_decoder_create(soundOutput->_sampleRate, 1, &opusErr);
+	if (opusErr != OPUS_OK || dec == NULL)
+		throw std::runtime_error("Opus decoder create error");
 }
 
 
@@ -22,12 +27,10 @@ CStreamPlayer::~CStreamPlayer()
 
 bool CStreamPlayer::PushOpusBuffer(const void * data, int count)
 {
-	static Sample out[OPUS_BUFFER_SIZE];
+	Sample out[OPUS_BUFFER_SIZE];
 	int frame_size = opus_decode_float(dec, (const unsigned char*)data, count, out, OPUS_BUFFER_SIZE, 0);
 	if (frame_size < 0)
 		return false;
-
-	pushedBuffers++;
 
 	ringBuffer.Write(out, frame_size);
 	return true;
@@ -91,7 +94,6 @@ bool CStreamPlayer::IsPlaying()
 
 bool CStreamPlayer::Update()
 {
-	bool sourceJustReceived = false;
 	if (!hasSource)
 	{
 		if (!ringBuffer.BytesToRead())
@@ -101,43 +103,25 @@ bool CStreamPlayer::Update()
 		if (!soundOutput->GetSource(source))
 			return true;
 
+		lastSourceRequestTime = std::chrono::system_clock::now();
+		sourceUsedOnce = false;
+
 		UpdateSource(source);
-		sourceJustReceived = true;
 		isPlaying = false;
 	}
 
 	ALint processed, state;
 
 	//Unqueue old buffers
-	if (!sourceJustReceived)
+	alGetSourcei(source, AL_SOURCE_STATE, &state);
+	isPlaying = state == AL_PLAYING;
+
+	alGetSourcei(source, AL_BUFFERS_PROCESSED, &processed);
+	if (alGetError() != AL_NO_ERROR)
+		return false;
+
+	if (!ringBuffer.BytesToRead() && !isPlaying && sourceUsedOnce)
 	{
-		alGetSourcei(source, AL_SOURCE_STATE, &state);
-		isPlaying = state == AL_PLAYING;
-
-		alGetSourcei(source, AL_BUFFERS_PROCESSED, &processed);
-		if (alGetError() != AL_NO_ERROR)
-			return false;
-
-		if (!ringBuffer.BytesToRead() && !isPlaying)
-		{
-			while (processed > 0)
-			{
-				ALuint bufid;
-				alSourceUnqueueBuffers(source, 1, &bufid);
-				freeBuffers.push(bufid);
-				processed--;
-			}
-
-			hasSource = false;
-			soundOutput->FreeSource(source);
-			return true;
-		}
-
-		if (ringBuffer.IsHalfFull())
-			alSourcef(source, AL_PITCH, 1.05f);
-		else
-			alSourcef(source, AL_PITCH, 1.f);
-
 		while (processed > 0)
 		{
 			ALuint bufid;
@@ -145,6 +129,24 @@ bool CStreamPlayer::Update()
 			freeBuffers.push(bufid);
 			processed--;
 		}
+
+		hasSource = false;
+		alSourceStop(source);
+		soundOutput->FreeSource(source);
+		return true;
+	}
+
+	if (ringBuffer.IsHalfFull())
+		alSourcef(source, AL_PITCH, 1.05f);
+	else
+		alSourcef(source, AL_PITCH, 1.f);
+
+	while (processed > 0)
+	{
+		ALuint bufid;
+		alSourceUnqueueBuffers(source, 1, &bufid);
+		freeBuffers.push(bufid);
+		processed--;
 	}
 	
 	while (ringBuffer.BytesToRead() && freeBuffers.size())
@@ -158,7 +160,7 @@ bool CStreamPlayer::Update()
 		readed = (ALsizei)ringBuffer.Read(tempBuffer, 4096);
 		if (readed > 0)
 		{
-			alBufferData(bufferId, format, tempBuffer, readed * sizeof(Sample), srate);
+			alBufferData(bufferId, format, tempBuffer, readed * sizeof(Sample), soundOutput->_sampleRate);
 			alSourceQueueBuffers(source, 1, &bufferId);
 		}
 		else
@@ -168,12 +170,18 @@ bool CStreamPlayer::Update()
 			return false;
 	}
 
-	if (!isPlaying && pushedBuffers > MIN_BUFFERS_TO_PLAY)
+	if (!isPlaying)
 	{
-		std::cout << "Start playing from source [ID: " << source << "]" << std::endl;
-		alSourcePlay(source);
-		if (alGetError() != AL_NO_ERROR)
-			return false;
+		auto currentTime = std::chrono::system_clock::now();
+		auto timeFromFirstBuffer = std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - lastSourceRequestTime).count();
+		if (timeFromFirstBuffer > soundOutput->bufferingTime)
+		{
+			std::cout << "Start playing from source [ID: " << source << "]" << std::endl;
+			alSourcePlay(source);
+			sourceUsedOnce = true;
+			if (alGetError() != AL_NO_ERROR)
+				return false;
+		}
 	}
 	return true;
 }

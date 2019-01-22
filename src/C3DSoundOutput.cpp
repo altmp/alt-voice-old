@@ -40,10 +40,7 @@ C3DSoundOutput::C3DSoundOutput(int sampleRate, int sourcesCount) : _sampleRate(s
 	for (uint8_t i = 0; i < sourcesCount; ++i)
 		freeSources.push(sources[i]);
 
-	int opusErr;
-	dec = opus_decoder_create(_sampleRate, 1, &opusErr);
-	if (opusErr != OPUS_OK || dec == NULL)
-		throw std::runtime_error("Opus decoder create error");
+	CStreamPlayer::soundOutput = this;
 }
 
 
@@ -108,9 +105,6 @@ void C3DSoundOutput::UpdateMe()
 IStreamPlayer* C3DSoundOutput::CreateStreamPlayer()
 {
 	CStreamPlayer* nextStreamPlayer = new CStreamPlayer();
-	nextStreamPlayer->soundOutput = this;
-	nextStreamPlayer->srate = _sampleRate;
-	nextStreamPlayer->dec = dec;
 	_streamPlayers.push_back(nextStreamPlayer);
 	return (IStreamPlayer*)nextStreamPlayer;
 }
@@ -119,6 +113,11 @@ void C3DSoundOutput::DeleteStreamPlayer(IStreamPlayer * streamPlayer)
 {
 	_streamPlayers.remove(streamPlayer);
 	delete streamPlayer;
+}
+
+void C3DSoundOutput::SetBufferingTime(unsigned int timeMS)
+{
+	buferringTime = timeMS;
 }
 
 void C3DSoundOutput::FreeSource(ALuint source)

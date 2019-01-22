@@ -13,7 +13,6 @@ class CStreamPlayer;
 class C3DSoundOutput: public I3DSoundOutput
 {
 	friend CStreamPlayer;
-	OpusDecoder* dec = nullptr;
 	std::list<IStreamPlayer *> _streamPlayers;
 
 	uint32_t _sampleRate;
@@ -25,6 +24,7 @@ class C3DSoundOutput: public I3DSoundOutput
 	ALuint *sources = nullptr;
 	ALuint _sourcesCount;
 	std::queue<ALuint> freeSources;
+	uint32_t bufferingTime = 0;
 public:
 	C3DSoundOutput(int sampleRate, int sourcesCount);
 	~C3DSoundOutput();
@@ -37,6 +37,7 @@ public:
 
 	IStreamPlayer* CreateStreamPlayer() override;
 	void DeleteStreamPlayer(IStreamPlayer* streamPlayer) override;
+	void SetBufferingTime(unsigned int timeMS) override;
 
 private:
 	void FreeSource(ALuint source);

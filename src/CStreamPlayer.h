@@ -1,6 +1,7 @@
 #pragma once
 #include <mutex>
 #include <queue>
+#include <chrono>
 
 #include <AL/al.h>
 #include <AL/alc.h>
@@ -21,6 +22,7 @@ using Sample = ALfloat;
 class CStreamPlayer: public IStreamPlayer
 {
 	friend C3DSoundOutput;
+	static C3DSoundOutput* soundOutput;
 
 	RingBuffer<Sample, RING_BUFFER_SIZE> ringBuffer;
 
@@ -29,7 +31,6 @@ class CStreamPlayer: public IStreamPlayer
 	ALuint buffersFilled = 0;
 
 	ALenum format = AL_FORMAT_MONO_FLOAT32;
-	ALsizei srate = 0;
 
 	ALfloat pitch = 1.f;
 	ALfloat gain = 1.f;
@@ -40,17 +41,14 @@ class CStreamPlayer: public IStreamPlayer
 	ALfloat maxDistance = 100.f;
 	ALfloat rolloffFactor = 1.f;
 
-	C3DSoundOutput* soundOutput = nullptr;
 	OpusDecoder* dec = nullptr;
 
-	uint32_t pushedBuffers = 0;
+	std::chrono::time_point<std::chrono::system_clock> lastSourceRequestTime;
 
 	std::queue<ALuint> freeBuffers;
 	bool isPlaying = false;
 	bool hasSource = false;
-
-	
-
+	bool sourceUsedOnce = false;
 public:
 	CStreamPlayer();
 	~CStreamPlayer();

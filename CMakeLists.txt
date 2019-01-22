@@ -58,17 +58,7 @@ endif()
 target_link_libraries(${PROJECT_NAME} OpenAL)
 target_link_libraries(${PROJECT_NAME} opus)
 
-#1st test
-add_executable(
-  3d-echo-test
-  ${PROJECT_SOURCE_DIR}/examples/3d-echo.cpp
-)
-if (WIN32)
-target_link_libraries(3d-echo-test WinMM.lib)
-endif()
-target_link_libraries(3d-echo-test alt-voice)
-
-#2nd test
+#Tests
 add_executable(
   3d-two-sources
   ${PROJECT_SOURCE_DIR}/examples/3d-two-sources.cpp

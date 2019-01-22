@@ -68,7 +68,7 @@ if(BUILD_TESTS)
   target_link_libraries(3d-two-sources WinMM.lib)
   endif()
   target_link_libraries(3d-two-sources alt-voice)
-enif()
+endif()
 
 set_target_properties(${PROJECT_NAME} PROPERTIES
   CXX_STANDARD 17

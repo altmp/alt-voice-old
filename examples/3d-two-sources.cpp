@@ -1,5 +1,11 @@
 #include <alt-voice.h>
+
+#ifdef _WIN32
 #include <Windows.h>
+#else
+#include <unistd.h>
+#endif
+
 #include <cmath>
 #include <sstream>
 #include <thread>

@@ -8,10 +8,10 @@ I3DSoundOutput* output = nullptr;
 ISoundInput* input = nullptr;
 
 
-I3DSoundOutput * CreateSoundOutput(int sampleRate)
+I3DSoundOutput * CreateSoundOutput(int sampleRate, int sourcesCount)
 {
 	if (!output)
-		output = new C3DSoundOutput(sampleRate);
+		output = new C3DSoundOutput(sampleRate, sourcesCount);
 	return output;
 }
 

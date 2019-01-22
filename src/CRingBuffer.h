@@ -3,19 +3,17 @@
 template<typename T, size_t BufferSize>
 class RingBuffer
 {
-	T* _buffer = nullptr;
+	T _buffer[BufferSize] = { 0 };
 	size_t _writeCursor = 0;
 	size_t _readCursor = 0;
 	std::mutex _accessMutex;
 public:
 	RingBuffer()
 	{
-		_buffer = new T[BufferSize];
 	}
 
 	~RingBuffer()
 	{
-		delete[] _buffer;
 	}
 
 	void Write(const T* buffer, size_t count)

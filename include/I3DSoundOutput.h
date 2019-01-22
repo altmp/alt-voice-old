@@ -14,4 +14,5 @@ public:
 
 	virtual IStreamPlayer* CreateStreamPlayer() = 0;
 	virtual void DeleteStreamPlayer(IStreamPlayer* streamPlayer) = 0;
+	virtual void SetBufferingTime(unsigned int timeMS) = 0;
 };

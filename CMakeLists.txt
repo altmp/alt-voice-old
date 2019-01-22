@@ -7,8 +7,10 @@ set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
 include(cotire)
 
+if (MSVC)
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MD /GL /LTCG /Zi /O2")
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MDd")
+endif()
 
 add_definitions(-DALT_VOICE_LIB)
 add_definitions(-DAL_LIBTYPE_STATIC)
@@ -34,14 +36,10 @@ GroupSources(${PROJECT_SOURCE_DIR}/src "Source Files")
 GroupSources(${PROJECT_SOURCE_DIR}/include "Include")
 
 include_directories(
-  ./src
-  ./include
+  ${PROJECT_SOURCE_DIR}/src
+  ${PROJECT_SOURCE_DIR}/include
   ${PROJECT_SOURCE_DIR}/vendor/openal/include/
   ${PROJECT_SOURCE_DIR}/vendor/opus/include/
-)
-
-link_directories(
-  ${PROJECT_SOURCE_DIR}/libs/${CMAKE_BUILD_TYPE}
 )
 
 add_library(
@@ -49,14 +47,41 @@ add_library(
   ${PROJECT_SOURCE_FILES}
 )
 
+add_subdirectory(${PROJECT_SOURCE_DIR}/vendor/opus ${PROJECT_SOURCE_DIR}/libs/${CMAKE_BUILD_TYPE}/opus)
+set(LIBTYPE STATIC)
+add_subdirectory(${PROJECT_SOURCE_DIR}/vendor/openal ${PROJECT_SOURCE_DIR}/libs/${CMAKE_BUILD_TYPE}/openal)
+
+if (WIN32)
 target_link_libraries(${PROJECT_NAME} WinMM.lib)
-target_link_libraries(${PROJECT_NAME} OpenAL32.lib)
-target_link_libraries(${PROJECT_NAME} opus.lib)
+endif()
+
+target_link_libraries(${PROJECT_NAME} OpenAL)
+target_link_libraries(${PROJECT_NAME} opus)
+
+#1st test
+add_executable(
+  3d-echo-test
+  ${PROJECT_SOURCE_DIR}/examples/3d-echo.cpp
+)
+if (WIN32)
+target_link_libraries(3d-echo-test WinMM.lib)
+endif()
+target_link_libraries(3d-echo-test alt-voice)
+
+#2nd test
+add_executable(
+  3d-two-sources
+  ${PROJECT_SOURCE_DIR}/examples/3d-two-sources.cpp
+)
+if (WIN32)
+target_link_libraries(3d-two-sources WinMM.lib)
+endif()
+target_link_libraries(3d-two-sources alt-voice)
 
 set_target_properties(${PROJECT_NAME} PROPERTIES
   CXX_STANDARD 17
-  RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/Debug/client"
-  RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/Release/client"
+  RUNTIME_OUTPUT_DIRECTORY_DEBUG "${PROJECT_SOURCE_DIR}/bin/Debug/"
+  RUNTIME_OUTPUT_DIRECTORY_RELEASE "${PROJECT_SOURCE_DIR}/bin/Release/"
 )
 
 cotire(${PROJECT_NAME})

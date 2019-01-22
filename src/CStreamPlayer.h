@@ -1,6 +1,7 @@
 #pragma once
 #include <mutex>
 #include <queue>
+#include <chrono>
 
 #include <AL/al.h>
 #include <AL/alc.h>
@@ -13,31 +14,41 @@
 
 #define NUM_BUFFERS 64
 #define MIN_BUFFERS_TO_PLAY 10
+#define RING_BUFFER_SIZE 262144
+#define OPUS_BUFFER_SIZE 8196
+
+using Sample = ALfloat;
 
 class CStreamPlayer: public IStreamPlayer
 {
 	friend C3DSoundOutput;
+	static C3DSoundOutput* soundOutput;
 
-	RingBuffer<short, 262144> ringBuffer;
+	RingBuffer<Sample, RING_BUFFER_SIZE> ringBuffer;
 
 	ALuint buffers[NUM_BUFFERS];
 	ALuint source;
 	ALuint buffersFilled = 0;
 
-	ALenum format = AL_FORMAT_MONO16;
-	ALsizei srate = 0;
+	ALenum format = AL_FORMAT_MONO_FLOAT32;
 
+	ALfloat pitch = 1.f;
+	ALfloat gain = 1.f;
 	ALfloat currentPos[3] = { 0.f, 0.f, 0.f };
 	ALfloat currentVel[3] = { 0.f, 0.f, 0.f };
 	ALfloat currentDir[3] = { 0.f, 0.f, 0.f };
+	ALfloat minDistance = 0.f;
+	ALfloat maxDistance = 100.f;
+	ALfloat rolloffFactor = 1.f;
 
-	C3DSoundOutput* _soundOutput = nullptr;
-	OpusDecoder* _dec = nullptr;
+	OpusDecoder* dec = nullptr;
 
-	uint32_t pushedBuffers = 0;
+	std::chrono::time_point<std::chrono::system_clock> lastSourceRequestTime;
 
 	std::queue<ALuint> freeBuffers;
-	bool _isPlaying = false;
+	bool isPlaying = false;
+	bool hasSource = false;
+	bool sourceUsedOnce = false;
 public:
 	CStreamPlayer();
 	~CStreamPlayer();
@@ -54,5 +65,8 @@ public:
 	bool IsPlaying() override;
 
 	bool Update() override;
+
+private:
+	bool UpdateSource(ALuint source);
 };
 

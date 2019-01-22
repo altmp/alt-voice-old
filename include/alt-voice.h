@@ -3,6 +3,8 @@
 #include "I3DSoundOutput.h"
 #include "ISoundInput.h"
 
+#define DEFAULT_SOURCE_COUNT 32//Lloks like this number copypasted from Snail
+
 #ifndef ALT_VOICE_API
 #if defined(ALT_LIB_STATIC)
 #define ALT_VOICE_API
@@ -17,7 +19,7 @@
 extern "C" {
 #endif
 
-ALT_VOICE_API I3DSoundOutput* CreateSoundOutput(int sampleRate);
+ALT_VOICE_API I3DSoundOutput* CreateSoundOutput(int sampleRate, int sourcesCount = DEFAULT_SOURCE_COUNT);
 ALT_VOICE_API ISoundInput* CreateSoundInput(int sampleRate, int framesPerBuffer, int bitrate);
 ALT_VOICE_API void DestroySoundOutput(I3DSoundOutput* output);
 ALT_VOICE_API void DestroySoundInput(ISoundInput* input);

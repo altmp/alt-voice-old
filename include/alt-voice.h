@@ -15,7 +15,7 @@
             #define ALT_VOICE_API __declspec(dllimport)
         #endif
     #else
-        #define AL_API extern
+        #define ALT_VOICE_API extern
     #endif
 #endif
 

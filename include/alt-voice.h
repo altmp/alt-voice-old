@@ -6,17 +6,17 @@
 #define DEFAULT_SOURCE_COUNT 32//Lloks like this number copypasted from Snail
 
 #ifndef ALT_VOICE_API
-#if defined(ALT_LIB_STATIC)
-#define ALT_VOICE_API
-#elif defined(_WIN32)
-#if defined(ALT_VOICE_LIB)
-#define ALT_VOICE_API __declspec(dllexport)
-#else
-#define ALT_VOICE_API __declspec(dllimport)
-#endif
-#else
-#define AL_API extern
-#endif
+    #if defined(ALT_LIB_STATIC)
+        #define ALT_VOICE_API
+    #elif defined(_WIN32)
+        #if defined(ALT_VOICE_LIB)
+            #define ALT_VOICE_API __declspec(dllexport)
+        #else
+            #define ALT_VOICE_API __declspec(dllimport)
+        #endif
+    #else
+        #define AL_API extern
+    #endif
 #endif
 
 #if defined(__cplusplus)

@@ -51,7 +51,7 @@ C3DSoundOutput::~C3DSoundOutput()
 	_streamPlayers.clear();
 
 	alDeleteSources(_sourcesCount, sources);
-	delete[_sourcesCount] sources;
+	delete[] sources;
 
 	ALCdevice *device;
 	ALCcontext *ctx;

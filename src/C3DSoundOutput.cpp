@@ -117,7 +117,7 @@ void C3DSoundOutput::DeleteStreamPlayer(IStreamPlayer * streamPlayer)
 
 void C3DSoundOutput::SetBufferingTime(unsigned int timeMS)
 {
-	buferringTime = timeMS;
+	bufferingTime = timeMS;
 }
 
 void C3DSoundOutput::FreeSource(ALuint source)

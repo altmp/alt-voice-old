@@ -1,4 +1,8 @@
-dist: xenial
-language: cpp
-compiler: gcc
+language: cзз
+compiler:
+  - gcc
+  - clang
+os:
+  - linux
+  - osx
 script: ./build.sh

@@ -1,5 +1,4 @@
 @echo off
-call ".\vendor\opus\win32\genversion.bat" ".\vendor\opus\win32\version.h" PACKAGE_VERSION
 echo Building alt-voice library
 if not exist "./temp/alt-voice" mkdir "./temp/alt-voice"
 cd ./temp/alt-voice
@@ -12,14 +11,15 @@ if errorlevel 1 (
 )
 
 if not exist "./bin/%1" mkdir "./bin/%1"
-copy /y .\temp\alt-voice\%1\alt-voice.lib .\bin\%1\alt-voice.lib
-copy /y .\temp\alt-voice\%1\alt-voice.dll .\bin\%1\alt-voice.dll
+if not exist "./lib/%1" mkdir "./lib/%1"
+copy /y .\temp\alt-voice\%1\alt-voice.lib .\lib\%1\alt-voice.lib
+copy /y .\bin\%1\alt-voice.dll .\lib\%1\alt-voice.dll
 
-msbuild ./temp/alt-voice/3d-echo-test.vcxproj /p:PlatformToolset=v141 /p:Configuration=%1 /p:Platform=x64
+msbuild ./temp/alt-voice/3d-two-sources.vcxproj /p:PlatformToolset=v141 /p:Configuration=%1 /p:Platform=x64
 if errorlevel 1 (
-   echo 3d-echo-test build error
+   echo 3d-two-sources build error
    exit /b %errorlevel%
 )
-copy /y .\temp\alt-voice\%1\3d-echo-test.exe .\bin\%1\3d-echo-test.exe
+copy /y .\temp\alt-voice\%1\3d-two-sources.exe .\bin\%1\3d-two-sources.exe
 
 echo alt-voice built

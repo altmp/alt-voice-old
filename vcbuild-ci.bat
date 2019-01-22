@@ -10,4 +10,4 @@ if errorlevel 1 (
    exit /b %errorlevel%
 )
 
-7z a .\bin\alt-voice.zip .\bin\*\*.dll .\bin\*\*.lib
+7z a .\bin\alt-voice.zip lib\*\*.dll lib\*\*.lib include\*.h

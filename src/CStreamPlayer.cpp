@@ -136,6 +136,7 @@ bool CStreamPlayer::Update()
 		//TODO: Remove sources from far objects if all busy
 		if (!soundOutput->GetSource(source))
 			return false;
+		hasSource = true;
 
 		lastSourceRequestTime = std::chrono::system_clock::now();
 		sourceUsedOnce = false;
@@ -145,7 +146,6 @@ bool CStreamPlayer::Update()
 			DropSource();
 			return false;
 		}
-		hasSource = true;
 		isPlaying = false;
 	}
 

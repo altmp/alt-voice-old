@@ -145,7 +145,7 @@ bool CStreamPlayer::Update()
 			DropSource();
 			return false;
 		}
-
+		hasSource = true;
 		isPlaying = false;
 	}
 
@@ -274,11 +274,7 @@ bool CStreamPlayer::UpdateSource(ALuint source)
 	}
 
 	if (alGetError() != AL_NO_ERROR)
-	{
-		hasSource = false;
 		return false;
-	}
-	hasSource = true;
 	return true;
 }
 

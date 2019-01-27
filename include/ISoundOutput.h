@@ -1,10 +1,11 @@
 #pragma once
 #include "IStreamPlayer.h"
+#include "VoiceError.h"
 
-class I3DSoundOutput
+class ISoundOutput
 {
 public:
-	virtual ~I3DSoundOutput() = default;
+	virtual ~ISoundOutput() = default;
 
 	virtual void SetMyPosition(float x, float y, float z) = 0;
 	virtual void SetMyVelocity(float x, float y, float z) = 0;
@@ -15,4 +16,5 @@ public:
 	virtual IStreamPlayer* CreateStreamPlayer() = 0;
 	virtual void DeleteStreamPlayer(IStreamPlayer* streamPlayer) = 0;
 	virtual void SetBufferingTime(unsigned int timeMS) = 0;
+	virtual AltVoiceError ChangeDevice(const char* deviceName) = 0;
 };

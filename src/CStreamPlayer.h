@@ -10,7 +10,7 @@
 
 #include "CRingBuffer.h"
 #include "IStreamPlayer.h"
-#include "C3DSoundOutput.h"
+#include "CSoundOutput.h"
 
 #define NUM_BUFFERS 64
 #define MIN_BUFFERS_TO_PLAY 10
@@ -21,8 +21,9 @@ using Sample = ALfloat;
 
 class CStreamPlayer: public IStreamPlayer
 {
-	friend C3DSoundOutput;
-	static C3DSoundOutput* soundOutput;
+	friend CSoundOutput;
+	static CSoundOutput* soundOutput;
+	static ALfloat zeroFloatVector[3];
 
 	RingBuffer<Sample, RING_BUFFER_SIZE> ringBuffer;
 
@@ -49,6 +50,8 @@ class CStreamPlayer: public IStreamPlayer
 	bool isPlaying = false;
 	bool hasSource = false;
 	bool sourceUsedOnce = false;
+
+	bool disableSpatial = false;
 public:
 	CStreamPlayer();
 	~CStreamPlayer();
@@ -62,11 +65,13 @@ public:
 	void SetMaxDistance(float distance) override;
 	void SetMinDistance(float distance) override;
 	void SetRolloffFactor(float rolloff) override;
+	void SetSpatialSoundState(bool state) override;
 	bool IsPlaying() override;
 
 	bool Update() override;
 
 private:
 	bool UpdateSource(ALuint source);
+	void DropSource();
 };
 

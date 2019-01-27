@@ -1,8 +1,9 @@
 #include <alt-voice.h>
-#include <Windows.h>
+
 #include <cmath>
 #include <sstream>
 #include <thread>
+#include <chrono>
 
 IStreamPlayer* streamPlayer = nullptr;
 IStreamPlayer* streamPlayer2 = nullptr;
@@ -17,15 +18,10 @@ void OnVoiceInput(const void* buffer, int length, float micLevel)
 
 	if (streamPlayer2 && streamActive2)
 		streamPlayer2->PushOpusBuffer(buffer, length);
-
-#ifdef _WIN32
-	std::stringstream ss;
-	int symbs = micLevel * 60;
-	for (int i = 0; i < symbs; ++i)
-		ss << ":";
-	SetConsoleTitleA(ss.str().c_str());
-#endif
 }
+
+float posOnCircle = 0;
+const float radius = 5.f;
 
 int main()
 {
@@ -58,17 +54,10 @@ int main()
 
 	soundOutput->UpdateMe();
 
-	float posOnCircle = 0;
-	const float radius = 5.f;
-
-	std::thread([&]() {
+	std::thread([]() {
 		while (true)
 		{
-#ifdef _WIN32
-			Sleep(20);
-#else
-			usleep(20000);
-#endif
+            std::this_thread::sleep_for(std::chrono::milliseconds(20));
 			posOnCircle += 0.02f;
 			float x = radius * cosf(posOnCircle);
 			float y = radius * -sinf(posOnCircle);

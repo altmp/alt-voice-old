@@ -5,12 +5,12 @@
 #include <AL/alc.h>
 #include <AL/alext.h>
 
-#include "I3DSoundOutput.h"
-
+#include "ISoundOutput.h"
+#include "VoiceError.h"
 
 class CStreamPlayer;
 
-class C3DSoundOutput: public I3DSoundOutput
+class CSoundOutput: public ISoundOutput
 {
 	friend CStreamPlayer;
 	std::list<IStreamPlayer *> _streamPlayers;
@@ -25,9 +25,12 @@ class C3DSoundOutput: public I3DSoundOutput
 	ALuint _sourcesCount;
 	std::queue<ALuint> freeSources;
 	uint32_t bufferingTime = 0;
+
+	ALCdevice *device;
+	ALCcontext *ctx;
 public:
-	C3DSoundOutput(int sampleRate, int sourcesCount);
-	~C3DSoundOutput();
+	CSoundOutput(char* deviceName, int sampleRate, int sourcesCount);
+	~CSoundOutput();
 
 	void SetMyPosition(float x, float y, float z) override;
 	void SetMyVelocity(float x, float y, float z) override;
@@ -39,6 +42,7 @@ public:
 	void DeleteStreamPlayer(IStreamPlayer* streamPlayer) override;
 	void SetBufferingTime(unsigned int timeMS) override;
 
+	AltVoiceError ChangeDevice(const char* deviceName) override;
 private:
 	void FreeSource(ALuint source);
 	bool GetSource(ALuint& source);

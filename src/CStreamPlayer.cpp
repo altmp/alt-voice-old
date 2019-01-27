@@ -1,7 +1,10 @@
 #include "CStreamPlayer.h"
 #include <iostream>
 
-C3DSoundOutput* CStreamPlayer::soundOutput = nullptr;
+#include "CVoiceException.h"
+
+CSoundOutput* CStreamPlayer::soundOutput = nullptr;
+ALfloat CStreamPlayer::zeroFloatVector[3] = { 0.f, 0.f, 0.f };
 
 
 CStreamPlayer::CStreamPlayer()
@@ -11,17 +14,20 @@ CStreamPlayer::CStreamPlayer()
 		freeBuffers.push(buffers[i]);
 
 	if (alGetError() != AL_NO_ERROR)
-		throw std::runtime_error("Could not create buffers");
+		throw CVoiceException(AltVoiceError::BufferCreateError);
 
 	int opusErr;
 	dec = opus_decoder_create(soundOutput->_sampleRate, 1, &opusErr);
 	if (opusErr != OPUS_OK || dec == NULL)
-		throw std::runtime_error("Opus decoder create error");
+		throw CVoiceException(AltVoiceError::OpusDecoderCreateError);
 }
 
 
 CStreamPlayer::~CStreamPlayer()
 {
+	if(hasSource)
+		soundOutput->FreeSource(source);
+		
 	alDeleteBuffers(NUM_BUFFERS, buffers);
 }
 
@@ -42,7 +48,7 @@ void CStreamPlayer::SetPosition(float x, float y, float z)
 	currentPos[1] = y;
 	currentPos[2] = z;
 
-	if(hasSource)
+	if(hasSource && !disableSpatial)
 		alSourcefv(source, AL_POSITION, currentPos);
 }
 
@@ -52,7 +58,7 @@ void CStreamPlayer::SetVelocity(float x, float y, float z)
 	currentVel[1] = y;
 	currentVel[2] = z;
 
-	if (hasSource)
+	if (hasSource && !disableSpatial)
 		alSourcefv(source, AL_VELOCITY, currentVel);
 }
 
@@ -62,29 +68,57 @@ void CStreamPlayer::SetDirection(float x, float y, float z)
 	currentDir[1] = y;
 	currentDir[2] = z;
 
-	if (hasSource)
+	if (hasSource && !disableSpatial)
 		alSourcefv(source, AL_DIRECTION, currentDir);
 }
 
 void CStreamPlayer::SetMaxDistance(float distance)
 {
 	maxDistance = distance;
-	if(hasSource)
+	if(hasSource && !disableSpatial)
 		alSourcef(source, AL_MAX_DISTANCE, distance);
 }
 
 void CStreamPlayer::SetMinDistance(float distance)
 {
 	minDistance = distance;
-	if(hasSource)
+	if(hasSource && !disableSpatial)
 		alSourcef(source, AL_REFERENCE_DISTANCE, distance);
 }
 
 void CStreamPlayer::SetRolloffFactor(float rolloff)
 {
 	rolloffFactor = rolloff;
-	if(hasSource)
+	if(hasSource && !disableSpatial)
 		alSourcef(source, AL_ROLLOFF_FACTOR, rolloff);
+}
+
+void CStreamPlayer::SetSpatialSoundState(bool state)
+{
+	if (disableSpatial == !state)
+		return;
+
+	disableSpatial = !state;
+	if (disableSpatial)
+	{
+		alSourcefv(source, AL_POSITION, zeroFloatVector);
+		alSourcefv(source, AL_VELOCITY, zeroFloatVector);
+		alSourcefv(source, AL_DIRECTION, zeroFloatVector);
+		alSourcef(source, AL_MAX_DISTANCE, 100.f);
+		alSourcef(source, AL_REFERENCE_DISTANCE, 100.f);
+		alSourcef(source, AL_ROLLOFF_FACTOR, 1.f);
+		alSourcei(source, AL_SOURCE_RELATIVE, AL_TRUE);
+	}
+	else
+	{
+		alSourcefv(source, AL_POSITION, currentPos);
+		alSourcefv(source, AL_VELOCITY, currentVel);
+		alSourcefv(source, AL_DIRECTION, currentDir);
+		alSourcef(source, AL_MAX_DISTANCE, maxDistance);
+		alSourcef(source, AL_REFERENCE_DISTANCE, minDistance);
+		alSourcef(source, AL_ROLLOFF_FACTOR, rolloffFactor);
+		alSourcei(source, AL_SOURCE_RELATIVE, AL_FALSE);
+	}
 }
 
 bool CStreamPlayer::IsPlaying()
@@ -101,12 +135,14 @@ bool CStreamPlayer::Update()
 
 		//TODO: Remove sources from far objects if all busy
 		if (!soundOutput->GetSource(source))
-			return true;
+			return false;
 
 		lastSourceRequestTime = std::chrono::system_clock::now();
 		sourceUsedOnce = false;
 
-		UpdateSource(source);
+		if (!UpdateSource(source))
+			return false;
+
 		isPlaying = false;
 	}
 
@@ -114,11 +150,17 @@ bool CStreamPlayer::Update()
 
 	//Unqueue old buffers
 	alGetSourcei(source, AL_SOURCE_STATE, &state);
+	if (alGetError() != AL_NO_ERROR)
+		return false;
+
 	isPlaying = state == AL_PLAYING;
 
 	alGetSourcei(source, AL_BUFFERS_PROCESSED, &processed);
 	if (alGetError() != AL_NO_ERROR)
+	{
+		DropSource();
 		return false;
+	}
 
 	if (!ringBuffer.BytesToRead() && !isPlaying && sourceUsedOnce)
 	{
@@ -130,9 +172,7 @@ bool CStreamPlayer::Update()
 			processed--;
 		}
 
-		hasSource = false;
-		alSourceStop(source);
-		soundOutput->FreeSource(source);
+		DropSource();
 		return true;
 	}
 
@@ -140,6 +180,12 @@ bool CStreamPlayer::Update()
 		alSourcef(source, AL_PITCH, 1.05f);
 	else
 		alSourcef(source, AL_PITCH, 1.f);
+
+	if (alGetError() != AL_NO_ERROR)
+	{
+		DropSource();
+		return false;
+	}
 
 	while (processed > 0)
 	{
@@ -161,13 +207,21 @@ bool CStreamPlayer::Update()
 		if (readed > 0)
 		{
 			alBufferData(bufferId, format, tempBuffer, readed * sizeof(Sample), soundOutput->_sampleRate);
+			if (alGetError() != AL_NO_ERROR)
+			{
+				DropSource();
+				return false;
+			}
+
 			alSourceQueueBuffers(source, 1, &bufferId);
+			if (alGetError() != AL_NO_ERROR)
+			{
+				DropSource();
+				return false;
+			}
 		}
 		else
 			break;
-
-		if (alGetError() != AL_NO_ERROR)
-			return false;
 	}
 
 	if (!isPlaying)
@@ -176,11 +230,13 @@ bool CStreamPlayer::Update()
 		auto timeFromFirstBuffer = std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - lastSourceRequestTime).count();
 		if (timeFromFirstBuffer > soundOutput->bufferingTime)
 		{
-			std::cout << "Start playing from source [ID: " << source << "]" << std::endl;
 			alSourcePlay(source);
 			sourceUsedOnce = true;
 			if (alGetError() != AL_NO_ERROR)
+			{
+				DropSource();
 				return false;
+			}
 		}
 	}
 	return true;
@@ -192,15 +248,43 @@ bool CStreamPlayer::UpdateSource(ALuint source)
 	alSourceRewind(source);
 	alSourcei(source, AL_LOOPING, false);
 	alSourcei(source, AL_BUFFER, 0);
-	alSourcefv(source, AL_POSITION, currentPos);
-	alSourcefv(source, AL_VELOCITY, currentVel);
-	alSourcefv(source, AL_DIRECTION, currentDir);
-	alSourcef(source, AL_MAX_DISTANCE, maxDistance);
-	alSourcef(source, AL_REFERENCE_DISTANCE, minDistance);
-	alSourcef(source, AL_ROLLOFF_FACTOR, rolloffFactor);
 
-	hasSource = true;
+	if (!disableSpatial)
+	{
+		alSourcefv(source, AL_POSITION, currentPos);
+		alSourcefv(source, AL_VELOCITY, currentVel);
+		alSourcefv(source, AL_DIRECTION, currentDir);
+		alSourcef(source, AL_MAX_DISTANCE, maxDistance);
+		alSourcef(source, AL_REFERENCE_DISTANCE, minDistance);
+		alSourcef(source, AL_ROLLOFF_FACTOR, rolloffFactor);
+		alSourcei(source, AL_SOURCE_RELATIVE, AL_FALSE);
+	}
+	else
+	{
+		alSourcefv(source, AL_POSITION, zeroFloatVector);
+		alSourcefv(source, AL_VELOCITY, zeroFloatVector);
+		alSourcefv(source, AL_DIRECTION, zeroFloatVector);
+		alSourcef(source, AL_MAX_DISTANCE, 100.f);
+		alSourcef(source, AL_REFERENCE_DISTANCE, 100.f);
+		alSourcef(source, AL_ROLLOFF_FACTOR, 1.f);
+		alSourcei(source, AL_SOURCE_RELATIVE, AL_TRUE);
+	}
+
 	if (alGetError() != AL_NO_ERROR)
+	{
+		hasSource = false;
 		return false;
+	}
+	hasSource = true;
 	return true;
+}
+
+void CStreamPlayer::DropSource()
+{
+	if (hasSource)
+	{
+		hasSource = false;
+		alSourceStop(source);
+		soundOutput->FreeSource(source);
+	}
 }

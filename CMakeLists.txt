@@ -59,14 +59,16 @@ target_link_libraries(${PROJECT_NAME} OpenAL)
 target_link_libraries(${PROJECT_NAME} opus)
 
 #Tests
-add_executable(
-  3d-two-sources
-  ${PROJECT_SOURCE_DIR}/examples/3d-two-sources.cpp
-)
-if (WIN32)
-target_link_libraries(3d-two-sources WinMM.lib)
+if(BUILD_TESTS)
+  add_executable(
+    3d-two-sources
+    ${PROJECT_SOURCE_DIR}/examples/3d-two-sources.cpp
+  )
+  if (WIN32)
+  target_link_libraries(3d-two-sources WinMM.lib)
+  endif()
+  target_link_libraries(3d-two-sources alt-voice)
 endif()
-target_link_libraries(3d-two-sources alt-voice)
 
 set_target_properties(${PROJECT_NAME} PROPERTIES
   CXX_STANDARD 17

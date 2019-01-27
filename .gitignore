@@ -2,3 +2,5 @@ temp
 bin/*
 lib/
 libs/
+.vs
+.vscode

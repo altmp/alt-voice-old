@@ -41,6 +41,7 @@ class CStreamPlayer: public IStreamPlayer
 	ALfloat minDistance = 0.f;
 	ALfloat maxDistance = 100.f;
 	ALfloat rolloffFactor = 1.f;
+	ALfloat extraGain = 0.f;
 
 	OpusDecoder* dec = nullptr;
 
@@ -66,6 +67,7 @@ public:
 	void SetMinDistance(float distance) override;
 	void SetRolloffFactor(float rolloff) override;
 	void SetSpatialSoundState(bool state) override;
+	void SetExtraGain(float gain) override;
 	bool IsPlaying() override;
 
 	bool Update() override;

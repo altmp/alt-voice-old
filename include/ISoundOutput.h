@@ -16,5 +16,7 @@ public:
 	virtual IStreamPlayer* CreateStreamPlayer() = 0;
 	virtual void DeleteStreamPlayer(IStreamPlayer* streamPlayer) = 0;
 	virtual void SetBufferingTime(unsigned int timeMS) = 0;
+	virtual void SetExtraGain(float gain) = 0;
+
 	virtual AltVoiceError ChangeDevice(const char* deviceName) = 0;
 };

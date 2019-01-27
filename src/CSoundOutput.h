@@ -20,6 +20,7 @@ class CSoundOutput: public ISoundOutput
 	ALfloat listenerPos[3] = { 0.f, 0.f, 0.f };
 	ALfloat listenerVel[3] = { 0.f, 0.f, 0.f };
 	ALfloat listenerOri[6] = { 0.f, 0.f, 0.f, 0.f, 0.f, 0.f };
+	ALfloat extraGain = 1.f;
 
 	ALuint *sources = nullptr;
 	ALuint _sourcesCount;
@@ -41,6 +42,7 @@ public:
 	IStreamPlayer* CreateStreamPlayer() override;
 	void DeleteStreamPlayer(IStreamPlayer* streamPlayer) override;
 	void SetBufferingTime(unsigned int timeMS) override;
+	void SetExtraGain(float gain) override;
 
 	AltVoiceError ChangeDevice(const char* deviceName) override;
 private:

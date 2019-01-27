@@ -102,6 +102,11 @@ void CSoundOutput::SetBufferingTime(unsigned int timeMS)
 	bufferingTime = timeMS;
 }
 
+void CSoundOutput::SetExtraGain(float gain)
+{
+	extraGain = gain;
+}
+
 AltVoiceError CSoundOutput::ChangeDevice(const char * deviceName)
 {
 	for (IStreamPlayer* p : _streamPlayers)

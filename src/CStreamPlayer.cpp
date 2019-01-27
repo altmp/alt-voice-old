@@ -38,6 +38,14 @@ bool CStreamPlayer::PushOpusBuffer(const void * data, int count)
 	if (frame_size < 0)
 		return false;
 
+	ALfloat finalGain = extraGain + soundOutput->extraGain;
+	if (finalGain != 1.f)
+	{
+		for (int i = 0; i < frame_size; ++i)
+			out[i] *= finalGain;
+	}
+	
+
 	ringBuffer.Write(out, frame_size);
 	return true;
 }
@@ -119,6 +127,11 @@ void CStreamPlayer::SetSpatialSoundState(bool state)
 		alSourcef(source, AL_ROLLOFF_FACTOR, rolloffFactor);
 		alSourcei(source, AL_SOURCE_RELATIVE, AL_FALSE);
 	}
+}
+
+void CStreamPlayer::SetExtraGain(float gain)
+{
+	extraGain = gain;
 }
 
 bool CStreamPlayer::IsPlaying()

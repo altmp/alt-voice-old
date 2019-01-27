@@ -1,4 +1,7 @@
 #pragma once
+#include <thread>
+#include <mutex>
+
 #include <opus.h>
 #include <AL/al.h>
 #include <AL/alc.h>
@@ -31,14 +34,18 @@ class CSoundInput: public ISoundInput
 	Sample* transferBuffer = nullptr;
 	bool inputActive = false;
 	int sleepTime = 0;
+
+	bool threadAlive = true;
+	std::mutex deviceMutex;
+	std::mutex micGainMutex;
 public:
-	CSoundInput(int sampleRate, int framesPerBuffer, int bitrate);
+	CSoundInput(char* deviceName, int sampleRate, int framesPerBuffer, int bitrate);
 	~CSoundInput();
 
 	bool EnableInput() override;
 	bool DisableInput() override;
 	void ChangeMicGain(float gain) override;
-
+	bool ChangeDevice(char* deviceName) override;
 	void RegisterCallback(OnVoiceCallback callback) override;
 };
 

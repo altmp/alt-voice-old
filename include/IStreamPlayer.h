@@ -14,6 +14,7 @@ public:
 	virtual void SetMaxDistance(float distance) = 0;
 	virtual void SetMinDistance(float distance) = 0;
 	virtual void SetRolloffFactor(float rolloff) = 0;
+	virtual void SetSpatialSoundState(bool state) = 0;
 	virtual bool IsPlaying() = 0;
 
 	virtual bool Update() = 0;

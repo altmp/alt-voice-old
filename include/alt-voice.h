@@ -1,9 +1,9 @@
 #pragma once
 #include "IStreamPlayer.h"
-#include "I3DSoundOutput.h"
+#include "ISoundOutput.h"
 #include "ISoundInput.h"
+#include "VoiceError.h"
 
-#define DEFAULT_SOURCE_COUNT 32//Lloks like this number copypasted from Snail
 
 #ifndef ALT_VOICE_API
     #if defined(ALT_LIB_STATIC)
@@ -23,9 +23,12 @@
 extern "C" {
 #endif
 
-ALT_VOICE_API I3DSoundOutput* CreateSoundOutput(int sampleRate, int sourcesCount = DEFAULT_SOURCE_COUNT);
-ALT_VOICE_API ISoundInput* CreateSoundInput(int sampleRate, int framesPerBuffer, int bitrate);
-ALT_VOICE_API void DestroySoundOutput(I3DSoundOutput* output);
+ALT_VOICE_API char* GetInputDevicesEnum();
+ALT_VOICE_API char* GetOutputDevicesEnum();
+ALT_VOICE_API char* GetNextDevice(char** enumerator);
+ALT_VOICE_API AltVoiceError CreateSoundOutput(char* deviceName, int sampleRate, int sourcesCount, ISoundOutput** soundOutput);
+ALT_VOICE_API AltVoiceError CreateSoundInput(char* deviceName, int sampleRate, int framesPerBuffer, int bitrate, ISoundInput** soundInput);
+ALT_VOICE_API void DestroySoundOutput(ISoundOutput* output);
 ALT_VOICE_API void DestroySoundInput(ISoundInput* input);
 
 #if defined(__cplusplus)

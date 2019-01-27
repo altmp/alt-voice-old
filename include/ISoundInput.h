@@ -10,5 +10,6 @@ public:
 	virtual bool EnableInput() = 0;
 	virtual bool DisableInput() = 0;
 	virtual void ChangeMicGain(float gain) = 0;
+	virtual bool ChangeDevice(char* deviceName) = 0;
 	virtual void RegisterCallback(OnVoiceCallback callback) = 0;
 };

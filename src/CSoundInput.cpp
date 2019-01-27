@@ -1,28 +1,47 @@
-#include "CSoundInput.h"
-#include <thread>
 #include <chrono>
+#include "CSoundInput.h"
+#include "CVoiceException.h"
 
 void CSoundInput::OnVoiceInput()
 {
-	static int catchedFrames = 0;
+	static uint32_t catchedFrames = 0;
 	static Sample opusFrameBuffer[FRAME_SIZE_OPUS];
 	static unsigned char packet[MAX_PACKET_SIZE];
+	static bool isBufferCaptured = false;
 
-	for (;;)
+	for (;threadAlive;)
 	{
-		alcGetIntegerv(inputDevice, ALC_CAPTURE_SAMPLES, 1, &catchedFrames);
-		if (catchedFrames >= _framesPerBuffer)
+		isBufferCaptured = false;
 		{
-			alcCaptureSamples(inputDevice, transferBuffer, _framesPerBuffer);
+			std::unique_lock<std::mutex> _deviceLock(deviceMutex);
+			if (!inputDevice)
+			{
+				std::this_thread::sleep_for(std::chrono::milliseconds(5));
+				continue;
+			}
+			alcGetIntegerv(inputDevice, ALC_CAPTURE_SAMPLES, 1, (ALCint*)&catchedFrames);
+			if (catchedFrames >= _framesPerBuffer)
+			{
+				alcCaptureSamples(inputDevice, transferBuffer, _framesPerBuffer);
+				isBufferCaptured = true;
+			}
+		}
+
+		if(isBufferCaptured)
+		{
 			float micLevel = -1.f;
-			for (int i = 0; i < _framesPerBuffer; ++i)
+			for (uint32_t i = 0; i < _framesPerBuffer; ++i)
 			{
 				if (transferBuffer[i] > micLevel)
 					micLevel = transferBuffer[i];
 			}
 			
-			for (int i = 0; i < _framesPerBuffer; ++i)
-				transferBuffer[i] = transferBuffer[i] * micGain;
+			{
+				std::unique_lock<std::mutex> _micGainLock(micGainMutex);
+				for (uint32_t i = 0; i < _framesPerBuffer; ++i)
+					transferBuffer[i] = transferBuffer[i] * micGain;
+			}
+			
 
 			_ringBuffer.Write((const Sample*)transferBuffer, _framesPerBuffer);
 
@@ -42,25 +61,25 @@ void CSoundInput::OnVoiceInput()
 	}
 }
 
-CSoundInput::CSoundInput(int sampleRate, int framesPerBuffer, int bitrate): _sampleRate(sampleRate), _framesPerBuffer(framesPerBuffer), _bitRate(bitrate)
+CSoundInput::CSoundInput(char* deviceName, int sampleRate, int framesPerBuffer, int bitrate): _sampleRate(sampleRate), _framesPerBuffer(framesPerBuffer), _bitRate(bitrate)
 {
-	sleepTime = (framesPerBuffer / (sampleRate / 1000)) / 2;
-
-	inputDevice = alcCaptureOpenDevice(NULL, sampleRate, AL_FORMAT_MONO_FLOAT32, framesPerBuffer);
+	inputDevice = alcCaptureOpenDevice(deviceName, sampleRate, AL_FORMAT_MONO_FLOAT32, framesPerBuffer);
 
 	if (!inputDevice)
-		throw std::runtime_error("Capture device open error");
+		throw CVoiceException(AltVoiceError::DeviceOpenError);
 
 	inputStreamThread = new std::thread(&CSoundInput::OnVoiceInput, this);
 	inputStreamThread->detach();
 
+	sleepTime = (framesPerBuffer / (sampleRate / 1000)) / 2;
+
 	int opusErr;
 	enc = opus_encoder_create(_sampleRate, 1, OPUS_APPLICATION_VOIP, &opusErr);
 	if (opusErr != OPUS_OK || enc == NULL)
-		throw std::runtime_error("Opus encoder create error");
+		throw CVoiceException(AltVoiceError::OpusEncoderCreateError);
 
 	if (opus_encoder_ctl(enc, OPUS_SET_BITRATE(_bitRate)) != OPUS_OK)
-		throw std::runtime_error("Opus set bitrate error");
+		throw CVoiceException(AltVoiceError::OpusBitrateSetError);
 
 	transferBuffer = new Sample[_framesPerBuffer];
 }
@@ -68,6 +87,7 @@ CSoundInput::CSoundInput(int sampleRate, int framesPerBuffer, int bitrate): _sam
 
 CSoundInput::~CSoundInput()
 {
+	threadAlive = false;
 	delete inputStreamThread;
 
 	alcCaptureCloseDevice(inputDevice);
@@ -78,9 +98,13 @@ bool CSoundInput::EnableInput()
 {
 	if (!inputActive)
 	{
-		inputActive = true;
-		alcCaptureStart(inputDevice);
-		return true;
+		std::unique_lock<std::mutex> _deviceLock(deviceMutex);
+		if (inputDevice)
+		{
+			inputActive = true;
+			alcCaptureStart(inputDevice);
+			return true;
+		}
 	}
 	return false;
 }
@@ -89,8 +113,10 @@ bool CSoundInput::DisableInput()
 {
 	if (inputActive)
 	{
+		std::unique_lock<std::mutex> _deviceLock(deviceMutex);
 		inputActive = false;
-		alcCaptureStop(inputDevice);
+		if(inputDevice)
+			alcCaptureStop(inputDevice);
 		return true;
 	}
 	return false;
@@ -98,7 +124,19 @@ bool CSoundInput::DisableInput()
 
 void CSoundInput::ChangeMicGain(float gain)
 {
+	std::unique_lock<std::mutex> _micGainLock(micGainMutex);
 	micGain = gain;
+}
+
+bool CSoundInput::ChangeDevice(char * deviceName)
+{
+	std::unique_lock<std::mutex> _deviceLock(deviceMutex);
+	alcCaptureCloseDevice(inputDevice);
+
+	inputDevice = alcCaptureOpenDevice(deviceName, _sampleRate, AL_FORMAT_MONO_FLOAT32, _framesPerBuffer);
+	if (!inputDevice)
+		return false;
+	return true;
 }
 
 void CSoundInput::RegisterCallback(OnVoiceCallback callback)

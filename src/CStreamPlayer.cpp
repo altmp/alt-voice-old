@@ -141,7 +141,10 @@ bool CStreamPlayer::Update()
 		sourceUsedOnce = false;
 
 		if (!UpdateSource(source))
+		{
+			DropSource();
 			return false;
+		}
 
 		isPlaying = false;
 	}

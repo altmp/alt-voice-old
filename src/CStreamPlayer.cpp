@@ -99,7 +99,7 @@ void CStreamPlayer::SetSpatialSoundState(bool state)
 		return;
 
 	disableSpatial = !state;
-	if (disableSpatial)
+	if (disableSpatial && hasSource)
 	{
 		alSourcefv(source, AL_POSITION, zeroFloatVector);
 		alSourcefv(source, AL_VELOCITY, zeroFloatVector);
@@ -109,7 +109,7 @@ void CStreamPlayer::SetSpatialSoundState(bool state)
 		alSourcef(source, AL_ROLLOFF_FACTOR, 1.f);
 		alSourcei(source, AL_SOURCE_RELATIVE, AL_TRUE);
 	}
-	else
+	else if(hasSource)
 	{
 		alSourcefv(source, AL_POSITION, currentPos);
 		alSourcefv(source, AL_VELOCITY, currentVel);

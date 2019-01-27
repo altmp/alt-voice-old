@@ -15,11 +15,11 @@ if not exist "./lib/%1" mkdir "./lib/%1"
 copy /y .\temp\alt-voice\%1\alt-voice.lib .\lib\%1\alt-voice.lib
 copy /y .\bin\%1\alt-voice.dll .\lib\%1\alt-voice.dll
 
-msbuild ./temp/alt-voice/3d-two-sources.vcxproj /p:PlatformToolset=v141 /p:Configuration=%1 /p:Platform=x64
-if errorlevel 1 (
-   echo 3d-two-sources build error
-   exit /b %errorlevel%
-)
-copy /y .\temp\alt-voice\%1\3d-two-sources.exe .\bin\%1\3d-two-sources.exe
+REM msbuild ./temp/alt-voice/3d-two-sources.vcxproj /p:PlatformToolset=v141 /p:Configuration=%1 /p:Platform=x64
+REM if errorlevel 1 (
+REM    echo 3d-two-sources build error
+REM    exit /b %errorlevel%
+REM )
+REM copy /y .\temp\alt-voice\%1\3d-two-sources.exe .\bin\%1\3d-two-sources.exe
 
 echo alt-voice built

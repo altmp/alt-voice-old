@@ -4,3 +4,6 @@
 [submodule "vendor/opus"]
 	path = vendor/opus
 	url = https://github.com/altmp/opus.git
+[submodule "tools/cotire"]
+	path = tools/cotire
+	url = https://github.com/sakra/cotire

@@ -2,7 +2,7 @@ cmake_minimum_required (VERSION 2.8)
 
 project(alt-voice)
 
-set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/tools)
+set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/tools/cotire/CMake)
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
 include(cotire)

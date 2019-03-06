@@ -9,7 +9,7 @@ void CSoundInput::OnVoiceInput()
 	static unsigned char packet[MAX_PACKET_SIZE];
 	static bool isBufferCaptured = false;
 
-	for (;threadAlive;)
+	while(threadAlive)
 	{
 		isBufferCaptured = false;
 		{

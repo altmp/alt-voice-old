@@ -29,6 +29,7 @@ class CSoundOutput: public ISoundOutput
 
 	ALCdevice *device;
 	ALCcontext *ctx;
+	AltVoiceError lastError = AltVoiceError::Ok;
 public:
 	CSoundOutput(char* deviceName, int sampleRate, int sourcesCount);
 	~CSoundOutput();
@@ -45,6 +46,7 @@ public:
 	void SetExtraGain(float gain) override;
 
 	AltVoiceError ChangeDevice(const char* deviceName) override;
+	AltVoiceError GetLastError() override;
 private:
 	void FreeSource(ALuint source);
 	bool GetSource(ALuint& source);

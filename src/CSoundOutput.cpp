@@ -86,9 +86,17 @@ void CSoundOutput::UpdateMe()
 
 IStreamPlayer* CSoundOutput::CreateStreamPlayer()
 {
-	CStreamPlayer* nextStreamPlayer = new CStreamPlayer();
-	_streamPlayers.push_back(nextStreamPlayer);
-	return (IStreamPlayer*)nextStreamPlayer;
+	try
+	{
+		CStreamPlayer* nextStreamPlayer = new CStreamPlayer();
+		_streamPlayers.push_back(nextStreamPlayer);
+		return (IStreamPlayer*)nextStreamPlayer;
+	}
+	catch (CVoiceException exception)
+	{
+		lastError = exception.GetCode();
+		return nullptr;
+	}
 }
 
 void CSoundOutput::DeleteStreamPlayer(IStreamPlayer * streamPlayer)
@@ -124,7 +132,10 @@ AltVoiceError CSoundOutput::ChangeDevice(const char * deviceName)
 
 	device = alcOpenDevice(deviceName);
 	if (!device)
+	{
+		lastError = AltVoiceError::DeviceOpenError;
 		return AltVoiceError::DeviceOpenError;
+	}
 
 	ctx = alcCreateContext(device, NULL);
 	if (ctx == NULL || alcMakeContextCurrent(ctx) == ALC_FALSE)
@@ -132,6 +143,7 @@ AltVoiceError CSoundOutput::ChangeDevice(const char * deviceName)
 		if (ctx != NULL)
 			alcDestroyContext(ctx);
 		alcCloseDevice(device);
+		lastError = AltVoiceError::ContextSetError;
 		return AltVoiceError::ContextSetError;
 	}
 
@@ -143,12 +155,20 @@ AltVoiceError CSoundOutput::ChangeDevice(const char * deviceName)
 	sources = new ALuint[_sourcesCount];
 	alGenSources(_sourcesCount, sources);
 	if (alGetError() != AL_NO_ERROR)
+	{
+		lastError = AltVoiceError::SourcesCreateError;
 		return AltVoiceError::SourcesCreateError;
+	}
 
 	for (uint8_t i = 0; i < _sourcesCount; ++i)
 		freeSources.push(sources[i]);
 
 	return AltVoiceError::Ok;
+}
+
+AltVoiceError CSoundOutput::GetLastError()
+{
+	return lastError;
 }
 
 void CSoundOutput::FreeSource(ALuint source)

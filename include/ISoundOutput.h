@@ -19,4 +19,5 @@ public:
 	virtual void SetExtraGain(float gain) = 0;
 
 	virtual AltVoiceError ChangeDevice(const char* deviceName) = 0;
+	virtual AltVoiceError GetLastError() = 0;
 };

@@ -8,7 +8,6 @@
 ISoundOutput* output = nullptr;
 ISoundInput* input = nullptr;
 
-
 ALT_VOICE_API char* GetInputDevicesEnum()
 {
 	char *devName = nullptr;

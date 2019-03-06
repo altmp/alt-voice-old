@@ -26,15 +26,17 @@ const float radius = 5.f;
 int main()
 {
 	int sampleRate = 24000;
-	int framesPerBuffer = 1200;
+	int framesPerBuffer = 420;
 	int bitrate = 16000;
 
-	ISoundInput* soundInput = CreateSoundInput(sampleRate, framesPerBuffer, bitrate);
+	ISoundInput* soundInput;
+	CreateSoundInput(NULL, sampleRate, framesPerBuffer, bitrate, &soundInput);
 	soundInput->RegisterCallback(OnVoiceInput);
 	soundInput->EnableInput();
 	//soundInput->ChangeMicGain(7.f);
 
-	I3DSoundOutput* soundOutput = CreateSoundOutput(sampleRate);
+	ISoundOutput* soundOutput;
+	CreateSoundOutput(NULL, sampleRate, 32, &soundOutput);
 
 	//OPUS Init
 

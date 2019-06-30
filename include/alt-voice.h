@@ -30,7 +30,7 @@ ALT_VOICE_API AltVoiceError CreateSoundOutput(char* deviceName, int sampleRate, 
 ALT_VOICE_API AltVoiceError CreateSoundInput(char* deviceName, int sampleRate, int framesPerBuffer, int bitrate, ISoundInput** soundInput);
 ALT_VOICE_API void DestroySoundOutput(ISoundOutput* output);
 ALT_VOICE_API void DestroySoundInput(ISoundInput* input);
-ALT_VOICE_API const char* GetErrorText(AltVoiceError error);
+ALT_VOICE_API const char* GetVoiceErrorText(AltVoiceError error);
 
 #if defined(__cplusplus)
 }

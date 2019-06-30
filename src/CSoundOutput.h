@@ -40,8 +40,6 @@ public:
 	void SetMyVelocity(float x, float y, float z) override;
 	void SetMyOrientationFront(float x, float y, float z) override;
 	void SetMyOrientationUp(float x, float y, float z) override;
-	void SetMyInnerConeAngle(float angle) override;
-	void SetMyOutterConeAngle(float angle) override;
 	void UpdateMe() override;
 
 	IStreamPlayer* CreateStreamPlayer() override;

@@ -94,7 +94,7 @@ void DestroySoundInput(ISoundInput * _input)
 	input = nullptr;
 }
 
-const char * GetErrorText(AltVoiceError error)
+const char * GetVoiceErrorText(AltVoiceError error)
 {
 	switch (error)
 	{

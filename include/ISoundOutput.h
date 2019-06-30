@@ -11,8 +11,6 @@ public:
 	virtual void SetMyVelocity(float x, float y, float z) = 0;
 	virtual void SetMyOrientationFront(float x, float y, float z) = 0;
 	virtual void SetMyOrientationUp(float x, float y, float z) = 0;
-	virtual void SetMyInnerConeAngle(float angle) = 0;
-	virtual void SetMyOutterConeAngle(float angle) = 0;
 	virtual void UpdateMe() = 0;
 
 	virtual IStreamPlayer* CreateStreamPlayer() = 0;

@@ -5,4 +5,5 @@ compiler:
 os:
   - linux
   - osx
+  - windows
 script: ./build.sh

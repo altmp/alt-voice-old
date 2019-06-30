@@ -8,7 +8,7 @@
 ISoundOutput* output = nullptr;
 ISoundInput* input = nullptr;
 
-ALT_VOICE_API char* GetInputDevicesEnum()
+char* GetInputDevicesEnum()
 {
 	char *devName = nullptr;
 	if (alcIsExtensionPresent(NULL, "ALC_enumeration_EXT") == AL_TRUE)
@@ -16,7 +16,7 @@ ALT_VOICE_API char* GetInputDevicesEnum()
 	return devName;
 }
 
-ALT_VOICE_API char* GetOutputDevicesEnum()
+char* GetOutputDevicesEnum()
 {
 	char *devName = nullptr;
 	if (alcIsExtensionPresent(NULL, "ALC_enumeration_EXT") == AL_TRUE)
@@ -29,7 +29,7 @@ ALT_VOICE_API char* GetOutputDevicesEnum()
 	return devName;
 }
 
-ALT_VOICE_API char * GetNextDevice(char ** enumerator)
+char * GetNextDevice(char ** enumerator)
 {
 	if(!enumerator || !*enumerator)
 		return nullptr;
@@ -92,4 +92,36 @@ void DestroySoundInput(ISoundInput * _input)
 	if (input == _input)
 		delete input;
 	input = nullptr;
+}
+
+const char * GetErrorText(AltVoiceError error)
+{
+	switch (error)
+	{
+	case AltVoiceError::Ok:
+		return "No error";
+	case AltVoiceError::DeviceOpenError:
+		return "Device open error";
+	case AltVoiceError::ContextSetError:
+		return "Context set error";
+	case AltVoiceError::SourcesCreateError:
+		return "Source create error";
+	case AltVoiceError::BufferCreateError_InvalidName:
+		return "Buffer create error. Invalid name";
+	case AltVoiceError::BufferCreateError_InvalidEnum:
+		return "Buffer create error. Invalid enum";
+	case AltVoiceError::BufferCreateError_InvalidValue:
+		return "Buffer create error. Invalid value";
+	case AltVoiceError::BufferCreateError_InvalidOperation:
+		return "Buffer create error. Invalid operation";
+	case AltVoiceError::BufferCreateError_OutOfMemory:
+		return "Buffer create error. Out of memory";
+	case AltVoiceError::OpusEncoderCreateError:
+		return "Encoder create error";
+	case AltVoiceError::OpusDecoderCreateError:
+		return "Decoder create error";
+	case AltVoiceError::OpusBitrateSetError:
+		return "Opus bitrate set error";
+	}
+	return "Unknown error";
 }

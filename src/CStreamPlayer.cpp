@@ -13,8 +13,21 @@ CStreamPlayer::CStreamPlayer()
 	for (uint16_t i = 0; i < NUM_BUFFERS; ++i)
 		freeBuffers.push(buffers[i]);
 
-	if (alGetError() != AL_NO_ERROR)
-		throw CVoiceException(AltVoiceError::BufferCreateError);
+	switch (alGetError())
+	{
+	case AL_NO_ERROR:
+		break;
+	case AL_INVALID_NAME:
+		throw CVoiceException(AltVoiceError::BufferCreateError_InvalidName);
+	case AL_INVALID_ENUM:
+		throw CVoiceException(AltVoiceError::BufferCreateError_InvalidEnum);
+	case AL_INVALID_VALUE:
+		throw CVoiceException(AltVoiceError::BufferCreateError_InvalidValue);
+	case AL_INVALID_OPERATION:
+		throw CVoiceException(AltVoiceError::BufferCreateError_InvalidOperation);
+	case AL_OUT_OF_MEMORY:
+		throw CVoiceException(AltVoiceError::BufferCreateError_OutOfMemory);
+	}
 
 	int opusErr;
 	dec = opus_decoder_create(soundOutput->_sampleRate, 1, &opusErr);

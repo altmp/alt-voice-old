@@ -12,8 +12,8 @@
 #include "IStreamPlayer.h"
 #include "CSoundOutput.h"
 
-#define NUM_BUFFERS 64
-#define MIN_BUFFERS_TO_PLAY 10
+#define NUM_BUFFERS 16
+#define MIN_BUFFERS_TO_PLAY 8
 #define RING_BUFFER_SIZE 262144
 #define OPUS_BUFFER_SIZE 8196
 

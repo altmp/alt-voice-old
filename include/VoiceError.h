@@ -6,7 +6,11 @@ enum AltVoiceError
 	DeviceOpenError,
 	ContextSetError,
 	SourcesCreateError,
-	BufferCreateError,
+	BufferCreateError_InvalidName,
+	BufferCreateError_InvalidEnum,
+	BufferCreateError_InvalidValue,
+	BufferCreateError_InvalidOperation,
+	BufferCreateError_OutOfMemory,
 	OpusEncoderCreateError,
 	OpusDecoderCreateError,
 	OpusBitrateSetError

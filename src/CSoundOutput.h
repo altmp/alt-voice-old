@@ -21,6 +21,8 @@ class CSoundOutput: public ISoundOutput
 	ALfloat listenerVel[3] = { 0.f, 0.f, 0.f };
 	ALfloat listenerOri[6] = { 0.f, 0.f, 0.f, 0.f, 0.f, 0.f };
 	ALfloat extraGain = 1.f;
+	ALfloat innerConeAngle = 90.f;
+	ALfloat outerConeAngle = 180.f;
 
 	ALuint *sources = nullptr;
 	ALuint _sourcesCount;
@@ -38,6 +40,8 @@ public:
 	void SetMyVelocity(float x, float y, float z) override;
 	void SetMyOrientationFront(float x, float y, float z) override;
 	void SetMyOrientationUp(float x, float y, float z) override;
+	void SetMyInnerConeAngle(float angle) override;
+	void SetMyOutterConeAngle(float angle) override;
 	void UpdateMe() override;
 
 	IStreamPlayer* CreateStreamPlayer() override;

@@ -77,11 +77,23 @@ void CSoundOutput::SetMyOrientationUp(float x, float y, float z)
 	listenerOri[5] = z;
 }
 
+void CSoundOutput::SetMyInnerConeAngle(float angle)
+{
+	innerConeAngle = angle;
+}
+
+void CSoundOutput::SetMyOutterConeAngle(float angle)
+{
+	outerConeAngle = angle;
+}
+
 void CSoundOutput::UpdateMe()
 {
 	alListenerfv(AL_POSITION, listenerPos);
 	alListenerfv(AL_VELOCITY, listenerVel);
 	alListenerfv(AL_ORIENTATION, listenerOri);
+	alListenerf(AL_CONE_INNER_ANGLE, innerConeAngle);
+	alListenerf(AL_CONE_OUTER_ANGLE, outerConeAngle);
 }
 
 IStreamPlayer* CSoundOutput::CreateStreamPlayer()

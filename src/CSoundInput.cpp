@@ -51,10 +51,15 @@ void CSoundInput::OnVoiceInput()
 
 				{
 					std::unique_lock<std::mutex> _deviceLock(noiseSuppressionMutex);
-					if (noiseSuppressionEnabled)
+
+
+					if (noiseSuppressionEnabled && denoiseSt)
 					{
+						for (int i = 0; i < FRAME_SIZE_OPUS; ++i) opusFrameBuffer[i] *= 32768.0;
 						rnnoise_process_frame(denoiseSt, opusFrameBuffer, opusFrameBuffer);
+						for (int i = 0; i < FRAME_SIZE_OPUS; ++i) opusFrameBuffer[i] /= 32768.0;
 					}
+
 				}
 
 				int len = opus_encode_float(enc, opusFrameBuffer, FRAME_SIZE_OPUS, packet, MAX_PACKET_SIZE);

@@ -48,6 +48,15 @@ void CSoundInput::OnVoiceInput()
 			while (_ringBuffer.BytesToRead() >= FRAME_SIZE_OPUS)
 			{
 				_ringBuffer.Read((Sample*)opusFrameBuffer, FRAME_SIZE_OPUS);
+
+				{
+					std::unique_lock<std::mutex> _deviceLock(noiseSuppressionMutex);
+					if (noiseSuppressionEnabled)
+					{
+						rnnoise_process_frame(denoiseSt, opusFrameBuffer, opusFrameBuffer);
+					}
+				}
+
 				int len = opus_encode_float(enc, opusFrameBuffer, FRAME_SIZE_OPUS, packet, MAX_PACKET_SIZE);
 
 				if (len < 0 || len > MAX_PACKET_SIZE)
@@ -82,6 +91,10 @@ CSoundInput::CSoundInput(char* deviceName, int sampleRate, int framesPerBuffer, 
 		throw CVoiceException(AltVoiceError::OpusBitrateSetError);
 
 	transferBuffer = new Sample[_framesPerBuffer];
+
+	denoiseSt = rnnoise_create(NULL);
+	if (!denoiseSt)
+		throw CVoiceException(AltVoiceError::DenoiseInitError);
 }
 
 
@@ -92,6 +105,8 @@ CSoundInput::~CSoundInput()
 
 	alcCaptureCloseDevice(inputDevice);
 	opus_encoder_destroy(enc);
+
+	rnnoise_destroy(denoiseSt);
 }
 
 bool CSoundInput::EnableInput()
@@ -142,4 +157,10 @@ bool CSoundInput::ChangeDevice(char * deviceName)
 void CSoundInput::RegisterCallback(OnVoiceCallback callback)
 {
 	cb = callback;
+}
+
+void CSoundInput::SetNoiseSuppressionStatus(bool enabled)
+{
+	std::unique_lock<std::mutex> _deviceLock(noiseSuppressionMutex);
+	noiseSuppressionEnabled = enabled;
 }

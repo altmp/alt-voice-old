@@ -9,6 +9,7 @@
 
 #include "ISoundInput.h"
 #include "CRingBuffer.h"
+#include "rnnoise.h"
 
 #define FRAME_SIZE_OPUS 480
 #define MAX_PACKET_SIZE 32768
@@ -38,6 +39,10 @@ class CSoundInput: public ISoundInput
 	bool threadAlive = true;
 	std::mutex deviceMutex;
 	std::mutex micGainMutex;
+
+	bool noiseSuppressionEnabled = false;
+	DenoiseState* denoiseSt = nullptr;
+	std::mutex noiseSuppressionMutex;
 public:
 	CSoundInput(char* deviceName, int sampleRate, int framesPerBuffer, int bitrate);
 	~CSoundInput();
@@ -47,5 +52,6 @@ public:
 	void ChangeMicGain(float gain) override;
 	bool ChangeDevice(char* deviceName) override;
 	void RegisterCallback(OnVoiceCallback callback) override;
+	void SetNoiseSuppressionStatus(bool enabled) override;
 };
 

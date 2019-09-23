@@ -13,5 +13,6 @@ enum AltVoiceError
 	BufferCreateError_OutOfMemory,
 	OpusEncoderCreateError,
 	OpusDecoderCreateError,
-	OpusBitrateSetError
+	OpusBitrateSetError,
+	DenoiseInitError
 };

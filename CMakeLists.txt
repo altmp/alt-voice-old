@@ -40,6 +40,7 @@ include_directories(
   ${PROJECT_SOURCE_DIR}/include
   ${PROJECT_SOURCE_DIR}/vendor/openal/include/
   ${PROJECT_SOURCE_DIR}/vendor/opus/include/
+  ${PROJECT_SOURCE_DIR}/vendor/rnnoise/include/
 )
 
 add_library(
@@ -50,6 +51,7 @@ add_library(
 add_subdirectory(${PROJECT_SOURCE_DIR}/vendor/opus ${PROJECT_SOURCE_DIR}/libs/${CMAKE_BUILD_TYPE}/opus)
 set(LIBTYPE STATIC)
 add_subdirectory(${PROJECT_SOURCE_DIR}/vendor/openal ${PROJECT_SOURCE_DIR}/libs/${CMAKE_BUILD_TYPE}/openal)
+add_subdirectory(${PROJECT_SOURCE_DIR}/vendor/rnnoise ${PROJECT_SOURCE_DIR}/libs/${CMAKE_BUILD_TYPE}/rnnoise)
 
 if (WIN32)
 target_link_libraries(${PROJECT_NAME} WinMM.lib)
@@ -57,6 +59,7 @@ endif()
 
 target_link_libraries(${PROJECT_NAME} OpenAL)
 target_link_libraries(${PROJECT_NAME} opus)
+target_link_libraries(${PROJECT_NAME} rnnoise)
 
 #Tests
 if(BUILD_TESTS)

@@ -6,6 +6,8 @@ class CVoiceException
 	friend class CSoundOutput;
 	friend class CSoundInput;
 	friend class CStreamPlayer;
+	friend class COpusEncoder;
+	friend class COpusDecoder;
 
 	AltVoiceError _exception;
 	CVoiceException(AltVoiceError voiceException) : _exception(voiceException) {};

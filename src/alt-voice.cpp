@@ -3,6 +3,8 @@
 #include "CSoundOutput.h"
 #include "CSoundInput.h"
 #include "CStreamPlayer.h"
+#include "COpusEncoder.h"
+#include "COpusDecoder.h"
 #include "CVoiceException.h"
 
 ISoundOutput* output = nullptr;
@@ -124,4 +126,44 @@ const char * GetVoiceErrorText(AltVoiceError error)
 		return "Opus bitrate set error";
 	}
 	return "Unknown error";
+}
+
+ALT_VOICE_API AltVoiceError CreateOpusEncoder(int sampleRate, int channelsCount, IOpusEncoder** opusEncoder)
+{
+	try
+	{
+		IOpusEncoder* encoder = new COpusEncoder(sampleRate, channelsCount);
+		*opusEncoder = encoder;
+		return AltVoiceError::Ok;
+	}
+	catch (const CVoiceException &e)
+	{
+		return e.GetCode();
+	}
+}
+
+ALT_VOICE_API AltVoiceError CreateOpusDecoder(int sampleRate, int channelsCount, IOpusDecoder** opusDecoder)
+{
+	try
+	{
+		IOpusDecoder* decoder = new COpusDecoder(sampleRate, channelsCount);
+		*opusDecoder = decoder;
+		return AltVoiceError::Ok;
+	}
+	catch (const CVoiceException & e)
+	{
+		return e.GetCode();
+	}
+}
+
+ALT_VOICE_API void DestroyOpusEncoder(IOpusEncoder* opusEncoder)
+{
+	if (opusEncoder)
+		delete opusEncoder;
+}
+
+ALT_VOICE_API void DestroyOpusDecoder(IOpusDecoder* opusDecoder)
+{
+	if (opusDecoder)
+		delete opusDecoder;
 }

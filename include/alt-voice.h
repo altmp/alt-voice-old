@@ -2,6 +2,8 @@
 #include "IStreamPlayer.h"
 #include "ISoundOutput.h"
 #include "ISoundInput.h"
+#include "IOpusEncoder.h"
+#include "IOpusDecoder.h"
 #include "VoiceError.h"
 
 
@@ -31,6 +33,10 @@ ALT_VOICE_API AltVoiceError CreateSoundInput(char* deviceName, int sampleRate, i
 ALT_VOICE_API void DestroySoundOutput(ISoundOutput* output);
 ALT_VOICE_API void DestroySoundInput(ISoundInput* input);
 ALT_VOICE_API const char* GetVoiceErrorText(AltVoiceError error);
+ALT_VOICE_API AltVoiceError CreateOpusEncoder(int sampleRate, int channelsCount, IOpusEncoder** opusEncoder);
+ALT_VOICE_API AltVoiceError CreateOpusDecoder(int sampleRate, int channelsCount, IOpusDecoder** opusDecoder);
+ALT_VOICE_API void DestroyOpusEncoder(IOpusEncoder* opusEncoder);
+ALT_VOICE_API void DestroyOpusDecoder(IOpusDecoder* opusDecoder);
 
 #if defined(__cplusplus)
 }

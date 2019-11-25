@@ -38,6 +38,23 @@ void CSoundInput::OnVoiceInput()
 			
 			{
 				std::unique_lock<std::mutex> _micGainLock(micGainMutex);
+
+				Sample highestSample = 0;
+				bool highestFound = false;
+				for (uint32_t i = 0; i < _framesPerBuffer; ++i)
+				{
+					if (!highestFound)
+					{
+						highestFound = true;
+						highestSample = abs(transferBuffer[i]);
+					}
+					else if (abs(transferBuffer[i]) > highestSample)
+						highestSample = abs(transferBuffer[i]);
+				}
+				float highestPossibleMultiplier = (float)1.0f / highestSample;
+				if (micGain > highestPossibleMultiplier)
+					micGain = highestPossibleMultiplier;
+
 				for (uint32_t i = 0; i < _framesPerBuffer; ++i)
 					transferBuffer[i] = transferBuffer[i] * micGain;
 			}

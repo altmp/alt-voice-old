@@ -2,7 +2,7 @@
 echo Building alt-voice library
 if not exist "./temp/alt-voice" mkdir "./temp/alt-voice"
 cd ./temp/alt-voice
-cmake -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTS=TRUE -G "Visual Studio 15 Win64" ../../
+cmake -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTS=TRUE -G"Visual Studio 16" -A x64 ../../
 cd ../../
 
 REM msbuild ./temp/alt-voice/3d-two-sources.vcxproj /p:PlatformToolset=v141 /p:Configuration=Debug /p:Platform=x64

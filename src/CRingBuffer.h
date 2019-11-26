@@ -1,19 +1,26 @@
 #pragma once
 #include <mutex>
-template<typename T, size_t BufferSize>
+
+template<typename T>
 class RingBuffer
 {
-	T _buffer[BufferSize] = { 0 };
-	size_t _writeCursor = 0;
-	size_t _readCursor = 0;
+	T *_buffer;
+	size_t _writeCursor;
+	size_t _readCursor;
+	size_t BufferSize;
 	std::mutex _accessMutex;
 public:
-	RingBuffer()
+	RingBuffer(int sizeInSamples): 
+		BufferSize(sizeInSamples),
+		_writeCursor(0),
+		_readCursor(0)
 	{
+		_buffer = new T[sizeInSamples];
 	}
 
 	~RingBuffer()
 	{
+		delete[] _buffer;
 	}
 
 	void Write(const T* buffer, size_t count)

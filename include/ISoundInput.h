@@ -12,5 +12,6 @@ public:
 	virtual void ChangeMicGain(float gain) = 0;
 	virtual bool ChangeDevice(char* deviceName) = 0;
 	virtual void RegisterCallback(OnVoiceCallback callback) = 0;
+	virtual void RegisterRawCallback(OnVoiceCallback callback) = 0;
 	virtual void SetNoiseSuppressionStatus(bool enabled) = 0;
 };

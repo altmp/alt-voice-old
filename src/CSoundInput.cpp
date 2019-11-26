@@ -2,130 +2,289 @@
 #include "CSoundInput.h"
 #include "CVoiceException.h"
 
+//#include <soxr-lsr.h>
+//#include <soxr.h>
+
+const CLSID CLSID_MMDeviceEnumerator = __uuidof(MMDeviceEnumerator);
+const IID IID_IMMDeviceEnumerator = __uuidof(IMMDeviceEnumerator);
+const IID IID_IAudioClient = __uuidof(IAudioClient);
+const IID IID_IAudioCaptureClient = __uuidof(IAudioCaptureClient);
+
+#define EXIT_ON_ERROR(hres, error)  \
+              if (FAILED(hres)) { lastError = error; goto Exit; }
+template <class T> void SafeRelease(T * *ppT)
+{
+	if (*ppT)
+	{
+		(*ppT)->Release();
+		*ppT = NULL;
+	}
+}
+
 void CSoundInput::OnVoiceInput()
 {
-	static uint32_t catchedFrames = 0;
-	static Sample opusFrameBuffer[FRAME_SIZE_OPUS];
-	static unsigned char packet[MAX_PACKET_SIZE];
-	static bool isBufferCaptured = false;
+	UINT32 packetLength = 0;
+	BYTE* pData;
+	DWORD flags;
+	HRESULT hr;
 
-	while(threadAlive)
+	while (threadActive)
 	{
-		isBufferCaptured = false;
+		if (inputActive && !isInputReallyActive)
 		{
-			std::unique_lock<std::mutex> _deviceLock(deviceMutex);
-			if (!inputDevice)
+			hr = pAudioClient->Start();
+			if (hr == S_OK)
 			{
-				std::this_thread::sleep_for(std::chrono::milliseconds(5));
-				continue;
-			}
-			alcGetIntegerv(inputDevice, ALC_CAPTURE_SAMPLES, 1, (ALCint*)&catchedFrames);
-			if (catchedFrames >= _framesPerBuffer)
-			{
-				alcCaptureSamples(inputDevice, transferBuffer, _framesPerBuffer);
-				isBufferCaptured = true;
+				resamplerInstance = WWMFResamplerInit(&inputFormat, &outputFormat, 60);
+				isInputReallyActive = true;
 			}
 		}
 
-		if(isBufferCaptured)
+		if (isInputReallyActive)
 		{
-			float micLevel = -1.f;
-			for (uint32_t i = 0; i < _framesPerBuffer; ++i)
+			pCaptureClient->GetNextPacketSize(&packetLength);
+			if (packetLength != 0)
 			{
-				if (transferBuffer[i] > micLevel)
-					micLevel = transferBuffer[i];
-			}
-			
-			{
-				std::unique_lock<std::mutex> _micGainLock(micGainMutex);
-
-				Sample highestSample = 0;
-				bool highestFound = false;
-				for (uint32_t i = 0; i < _framesPerBuffer; ++i)
+				// Get the available data in the shared buffer.
+				pCaptureClient->GetBuffer(&pData, &numFramesAvailable, &flags, NULL, NULL);
+				if (flags & AUDCLNT_BUFFERFLAGS_SILENT)
 				{
-					if (!highestFound)
+					int silenceSize = numFramesAvailable * pwfx->nBlockAlign;
+					for (int i = 0; i < silenceSize; i += sizeof(silence)) // Tell CopyData to write silence.
 					{
-						highestFound = true;
-						highestSample = abs(transferBuffer[i]);
+						int bufSize = silenceSize > sizeof(silence) ? sizeof(silence) : silenceSize;
+
+						int resampledSize = sizeof(resampledBuffer);
+						hr = WWMFResamplerResample(resamplerInstance, silence, bufSize, resampledBuffer, &resampledSize);
+						if (!FAILED(hr) && resampledSize > 0)
+							OnPcmData((BYTE*)resampledBuffer, resampledSize, resampledSize / sizeof(Sample));
+						silenceSize -= bufSize;
 					}
-					else if (abs(transferBuffer[i]) > highestSample)
-						highestSample = abs(transferBuffer[i]);
 				}
-				float highestPossibleMultiplier = (float)1.0f / highestSample;
-				if (micGain > highestPossibleMultiplier)
-					micGain = highestPossibleMultiplier;
-
-				for (uint32_t i = 0; i < _framesPerBuffer; ++i)
-					transferBuffer[i] = transferBuffer[i] * micGain;
-			}
-			
-
-			_ringBuffer.Write((const Sample*)transferBuffer, _framesPerBuffer);
-
-			while (_ringBuffer.BytesToRead() >= FRAME_SIZE_OPUS)
-			{
-				_ringBuffer.Read((Sample*)opusFrameBuffer, FRAME_SIZE_OPUS);
-
+				else
 				{
-					std::unique_lock<std::mutex> _deviceLock(noiseSuppressionMutex);
-
-
-					if (noiseSuppressionEnabled && denoiseSt)
-					{
-						for (int i = 0; i < FRAME_SIZE_OPUS; ++i) opusFrameBuffer[i] *= 32768.0;
-						rnnoise_process_frame(denoiseSt, opusFrameBuffer, opusFrameBuffer);
-						for (int i = 0; i < FRAME_SIZE_OPUS; ++i) opusFrameBuffer[i] /= 32768.0;
-					}
-
+					int resampledSize = sizeof(resampledBuffer);
+					hr = WWMFResamplerResample(resamplerInstance, pData, pwfx->nBlockAlign * numFramesAvailable, resampledBuffer, &resampledSize);
+					if (!FAILED(hr) && resampledSize > 0)
+						OnPcmData(resampledBuffer, resampledSize, resampledSize / sizeof(Sample));
 				}
 
-				int len = opus_encode_float(enc, opusFrameBuffer, FRAME_SIZE_OPUS, packet, MAX_PACKET_SIZE);
-
-				if (len < 0 || len > MAX_PACKET_SIZE)
-					return;
-
-				if (cb)
-					cb(packet, len, micLevel);
+				pCaptureClient->ReleaseBuffer(numFramesAvailable);
 			}
 		}
-		std::this_thread::sleep_for(std::chrono::milliseconds(sleepTime));
+
+		if (!inputActive && isInputReallyActive)
+		{
+			hr = pAudioClient->Stop();
+			if (hr == S_OK)
+			{
+				isInputReallyActive = false;
+				int resampledSize = sizeof(resampledBuffer);
+				hr = WWMFResamplerDrain(resamplerInstance, resampledBuffer, &resampledSize);
+				if (!FAILED(hr) && resampledSize > 0)
+					OnPcmData(resampledBuffer, resampledSize, resampledSize / sizeof(Sample));
+				WWMFResamplerTerm(resamplerInstance);
+				resamplerInstance = 0;
+			}
+		}
+
+		std::this_thread::sleep_for(sleepTime);
+	}
+}
+
+float CSoundInput::LinearToDecibel(float linear)
+{
+	if (linear != 0.0f)
+		return 20.0f * log10(linear);
+	else
+		return -144.0f;  // effectively minus infinity
+}
+
+void CSoundInput::GainPCM(Sample* data, size_t framesCount)
+{
+	Sample maxFrame = 0;
+	bool maxFrameFound = false;
+	for (int i = 0; i < framesCount; ++i)
+	{
+		Sample s = abs(data[i]);
+		if (!maxFrameFound)
+			maxFrame = s;
+		else if (s > maxFrame)
+			maxFrame = s;
+	}
+
+	float maxPossibleGain = (float)MAXSHORT / maxFrame;
+	float gain = min(maxPossibleGain, micGain);
+
+	for (int i = 0; i < framesCount; ++i)
+		data[i] *= gain;
+}
+
+void CSoundInput::OnPcmData(BYTE* data, size_t size, size_t framesCount)
+{
+	if (micGain != 1.f) GainPCM((Sample*)data, framesCount);
+
+	_ringBuffer->Write((const Sample*)data, framesCount);
+
+	while (_ringBuffer->BytesToRead() >= FRAME_SIZE_OPUS)
+	{
+		_ringBuffer->Read((Sample*)opusInputFrameBuffer, FRAME_SIZE_OPUS);
+
+		if (noiseSuppressionEnabled)
+			Denoise(opusInputFrameBuffer);
+
+		if (rawCb) rawCb(opusInputFrameBuffer, FRAME_SIZE_OPUS * sizeof(Sample), 0);
+
+		int len = opus_encode(enc, opusInputFrameBuffer, FRAME_SIZE_OPUS, packet, MAX_PACKET_SIZE);
+
+		if (len < 0 || len > MAX_PACKET_SIZE) return;
+		if (cb) cb(packet, len, 0);
+	}
+}
+
+void CSoundInput::Denoise(Sample* buffer)
+{
+	if (denoiseSt)
+	{
+		for (int i = 0; i < FRAME_SIZE_OPUS; ++i) floatBuffer[i] = buffer[i];
+		rnnoise_process_frame(denoiseSt, floatBuffer, floatBuffer);
+		for (int i = 0; i < FRAME_SIZE_OPUS; ++i) buffer[i] = floatBuffer[i];
 	}
 }
 
 CSoundInput::CSoundInput(char* deviceName, int sampleRate, int framesPerBuffer, int bitrate): _sampleRate(sampleRate), _framesPerBuffer(framesPerBuffer), _bitRate(bitrate)
 {
-	inputDevice = alcCaptureOpenDevice(deviceName, sampleRate, AL_FORMAT_MONO_FLOAT32, framesPerBuffer);
+	AltVoiceError lastError = AltVoiceError::Ok;
+	HRESULT hr = S_OK;
 
-	if (!inputDevice)
-		throw CVoiceException(AltVoiceError::DeviceOpenError);
+	_ringBuffer = new RingBuffer<Sample>(sampleRate * 2);
 
+	static bool _coInitialized = false;
+	if (!_coInitialized)
+	{
+		hr = CoInitialize(NULL);
+		EXIT_ON_ERROR(hr, AltVoiceError::DeviceOpenError);
+		_coInitialized = true;
+	}
+
+	REFERENCE_TIME hnsRequestedDuration = RefTimesPerSec;
+	REFERENCE_TIME hnsActualDuration;
+	UINT32 bufferFrameCount;
+
+	hr = CoCreateInstance(CLSID_MMDeviceEnumerator, NULL, CLSCTX_ALL, IID_IMMDeviceEnumerator, (void**)&pEnumerator);
+	EXIT_ON_ERROR(hr, AltVoiceError::DeviceOpenError);
+
+	hr = pEnumerator->GetDefaultAudioEndpoint(eCapture, eConsole, &pDevice);
+	EXIT_ON_ERROR(hr, AltVoiceError::DeviceOpenError);
+
+	hr = pDevice->Activate(IID_IAudioClient, CLSCTX_ALL, NULL, (void**)&pAudioClient);
+	EXIT_ON_ERROR(hr, AltVoiceError::DeviceOpenError);
+
+	hr = pAudioClient->GetMixFormat(&pwfx);
+	EXIT_ON_ERROR(hr, AltVoiceError::DeviceOpenError);
+
+	if (pwfx->wFormatTag == WAVE_FORMAT_PCM || pwfx->wFormatTag == WAVE_FORMAT_IEEE_FLOAT)
+	{
+		inputFormat.sampleFormat = pwfx->wFormatTag == WAVE_FORMAT_PCM ? WWMFBitFormatType::WWMFBitFormatInt : WWMFBitFormatType::WWMFBitFormatFloat;
+		inputFormat.sampleRate = pwfx->nSamplesPerSec;
+		inputFormat.nChannels = pwfx->nChannels;
+		inputFormat.bits = pwfx->wBitsPerSample;
+		inputFormat.validBitsPerSample = pwfx->wBitsPerSample;
+	}
+	else if (pwfx->wFormatTag == WAVE_FORMAT_EXTENSIBLE)
+	{
+		WAVEFORMATEXTENSIBLE* pWaveFormatExtensible = reinterpret_cast<WAVEFORMATEXTENSIBLE*>(pwfx);
+		if (pWaveFormatExtensible->SubFormat == KSDATAFORMAT_SUBTYPE_PCM)
+			inputFormat.sampleFormat = WWMFBitFormatType::WWMFBitFormatInt;
+		else if (pWaveFormatExtensible->SubFormat == KSDATAFORMAT_SUBTYPE_IEEE_FLOAT)
+			inputFormat.sampleFormat = WWMFBitFormatType::WWMFBitFormatFloat;
+		else
+			EXIT_ON_ERROR(-1, AltVoiceError::DeviceOpenError);
+
+		inputFormat.sampleRate = pWaveFormatExtensible->Format.nSamplesPerSec;
+		inputFormat.nChannels = pWaveFormatExtensible->Format.nChannels;
+		inputFormat.bits = pWaveFormatExtensible->Format.wBitsPerSample;
+		inputFormat.validBitsPerSample = pWaveFormatExtensible->Samples.wValidBitsPerSample;
+		inputFormat.dwChannelMask = pWaveFormatExtensible->dwChannelMask;
+	}
+	else
+		EXIT_ON_ERROR(-1, AltVoiceError::DeviceOpenError);
+
+	outputFormat.bits = sizeof(Sample) * 8;
+	outputFormat.nChannels = 1;
+	outputFormat.sampleFormat = WWMFBitFormatType::WWMFBitFormatInt;
+	outputFormat.sampleRate = sampleRate;
+	outputFormat.validBitsPerSample = outputFormat.bits;
+
+	/*bool formatConfigured = ConfigureFormat(pwfx);
+	if(!formatConfigured) throw CVoiceException(AltVoiceError::DeviceOpenError);*/
+
+	hr = pAudioClient->Initialize(AUDCLNT_SHAREMODE_SHARED, 0, hnsRequestedDuration, 0, pwfx, NULL);
+	EXIT_ON_ERROR(hr, AltVoiceError::DeviceOpenError);
+
+	hr = pAudioClient->GetBufferSize(&bufferFrameCount);
+	EXIT_ON_ERROR(hr, AltVoiceError::DeviceOpenError);
+
+	hr = pAudioClient->GetService(IID_IAudioCaptureClient, (void**)&pCaptureClient);
+	EXIT_ON_ERROR(hr, AltVoiceError::DeviceOpenError);
+
+	hnsActualDuration = (double)RefTimesPerSec * bufferFrameCount / pwfx->nSamplesPerSec;
+	sleepTime = std::chrono::milliseconds(hnsActualDuration / RefTimesPerMillisec / 8);
+
+	threadActive = true;
 	inputStreamThread = new std::thread(&CSoundInput::OnVoiceInput, this);
-	inputStreamThread->detach();
-
-	sleepTime = (framesPerBuffer / (sampleRate / 1000)) / 2;
 
 	int opusErr;
 	enc = opus_encoder_create(_sampleRate, 1, OPUS_APPLICATION_VOIP, &opusErr);
 	if (opusErr != OPUS_OK || enc == NULL)
-		throw CVoiceException(AltVoiceError::OpusEncoderCreateError);
+		EXIT_ON_ERROR(-1, AltVoiceError::OpusEncoderCreateError);
 
 	if (opus_encoder_ctl(enc, OPUS_SET_BITRATE(_bitRate)) != OPUS_OK)
-		throw CVoiceException(AltVoiceError::OpusBitrateSetError);
+		EXIT_ON_ERROR(-1, AltVoiceError::OpusBitrateSetError);
+
+	/*if (opus_encoder_ctl(enc, OPUS_SET_SIGNAL(OPUS_SIGNAL_VOICE)) != OPUS_OK)
+		EXIT_ON_ERROR(-1, AltVoiceError::OpusSignalSetError);*/
 
 	transferBuffer = new Sample[_framesPerBuffer];
 
 	denoiseSt = rnnoise_create(NULL);
 	if (!denoiseSt)
-		throw CVoiceException(AltVoiceError::DenoiseInitError);
+		EXIT_ON_ERROR(-1, AltVoiceError::DenoiseInitError);
+
+Exit:
+	if (lastError != AltVoiceError::Ok)
+	{
+		CoTaskMemFree(pwfx);
+		SafeRelease(&pEnumerator);
+		SafeRelease(&pDevice);
+		SafeRelease(&pAudioClient);
+		SafeRelease(&pCaptureClient);
+
+		if (enc)
+			opus_encoder_destroy(enc);
+
+		if (denoiseSt)
+			rnnoise_destroy(denoiseSt);
+
+		throw CVoiceException(lastError);
+	}
 }
 
 
 CSoundInput::~CSoundInput()
 {
-	threadAlive = false;
+	threadActive = false;
+	inputStreamThread->join();
+	delete _ringBuffer;
 	delete inputStreamThread;
+	delete[] transferBuffer;
 
-	alcCaptureCloseDevice(inputDevice);
+	CoTaskMemFree(pwfx);
+	SafeRelease(&pEnumerator);
+	SafeRelease(&pDevice);
+	SafeRelease(&pAudioClient);
+	SafeRelease(&pCaptureClient);
+
 	opus_encoder_destroy(enc);
 
 	rnnoise_destroy(denoiseSt);
@@ -135,13 +294,8 @@ bool CSoundInput::EnableInput()
 {
 	if (!inputActive)
 	{
-		std::unique_lock<std::mutex> _deviceLock(deviceMutex);
-		if (inputDevice)
-		{
-			inputActive = true;
-			alcCaptureStart(inputDevice);
-			return true;
-		}
+		inputActive = true;
+		return true;
 	}
 	return false;
 }
@@ -150,10 +304,7 @@ bool CSoundInput::DisableInput()
 {
 	if (inputActive)
 	{
-		std::unique_lock<std::mutex> _deviceLock(deviceMutex);
 		inputActive = false;
-		if(inputDevice)
-			alcCaptureStop(inputDevice);
 		return true;
 	}
 	return false;
@@ -161,18 +312,17 @@ bool CSoundInput::DisableInput()
 
 void CSoundInput::ChangeMicGain(float gain)
 {
-	std::unique_lock<std::mutex> _micGainLock(micGainMutex);
-	micGain = gain;
+	micGain = LinearToDecibel(gain);
 }
 
 bool CSoundInput::ChangeDevice(char * deviceName)
 {
-	std::unique_lock<std::mutex> _deviceLock(deviceMutex);
+	/*std::unique_lock<std::mutex> _deviceLock(deviceMutex);
 	alcCaptureCloseDevice(inputDevice);
 
 	inputDevice = alcCaptureOpenDevice(deviceName, _sampleRate, AL_FORMAT_MONO_FLOAT32, _framesPerBuffer);
 	if (!inputDevice)
-		return false;
+		return false;*/
 	return true;
 }
 
@@ -181,8 +331,12 @@ void CSoundInput::RegisterCallback(OnVoiceCallback callback)
 	cb = callback;
 }
 
+void CSoundInput::RegisterRawCallback(OnVoiceCallback callback)
+{
+	rawCb = callback;
+}
+
 void CSoundInput::SetNoiseSuppressionStatus(bool enabled)
 {
-	std::unique_lock<std::mutex> _deviceLock(noiseSuppressionMutex);
 	noiseSuppressionEnabled = enabled;
 }

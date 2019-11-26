@@ -4,20 +4,46 @@
 #include <sstream>
 #include <thread>
 #include <chrono>
+#include <fstream>
 
-IStreamPlayer* streamPlayer = nullptr;
-IStreamPlayer* streamPlayer2 = nullptr;
+//IStreamPlayer* streamPlayer = nullptr;
+//IStreamPlayer* streamPlayer2 = nullptr;
 
 bool streamActive1 = true;
 bool streamActive2 = true;
 
+inline uint64_t Now()
+{
+	std::chrono::time_point<std::chrono::system_clock> now = std::chrono::system_clock::now();
+	auto duration = now.time_since_epoch();
+	auto millis = std::chrono::duration_cast<std::chrono::milliseconds>(duration).count();
+	return millis;
+}
+
 void OnVoiceInput(const void* buffer, int length, float micLevel)
 {
-	if (streamPlayer && streamActive1)
+	static int bytesWritten = 0;
+	static bool writeFile = true;
+	static std::ofstream out("./output.pcm", std::ofstream::binary);
+	static uint64_t startTime = Now();
+
+	if (bytesWritten < (48000 * 2 * 10) && writeFile)
+	{
+		out.write((char*)buffer, length);
+		bytesWritten += length;
+		printf("%.2f. %d bytes received\n", (float)bytesWritten / (48000 * 2 * 10), length);
+	}
+	else if(writeFile)
+	{
+		printf("Time: %d\n", (Now() - startTime));
+		out.close();
+		writeFile = false;
+	}
+	/*if (streamPlayer && streamActive1)
 		streamPlayer->PushOpusBuffer(buffer, length);
 
 	if (streamPlayer2 && streamActive2)
-		streamPlayer2->PushOpusBuffer(buffer, length);
+		streamPlayer2->PushOpusBuffer(buffer, length);*/
 }
 
 float posOnCircle = 0;
@@ -25,22 +51,23 @@ const float radius = 5.f;
 
 int main()
 {
-	int sampleRate = 24000;
+	int sampleRate = 48000;
 	int framesPerBuffer = 420;
-	int bitrate = 16000;
+	int bitrate = 64000;
 
 	ISoundInput* soundInput;
 	CreateSoundInput(NULL, sampleRate, framesPerBuffer, bitrate, &soundInput);
-	soundInput->RegisterCallback(OnVoiceInput);
+	soundInput->SetNoiseSuppressionStatus(true);
+	soundInput->ChangeMicGain(2.f);
+	soundInput->RegisterRawCallback(OnVoiceInput);
 	soundInput->EnableInput();
-	//soundInput->ChangeMicGain(7.f);
 
-	ISoundOutput* soundOutput;
-	CreateSoundOutput(NULL, sampleRate, 32, &soundOutput);
+	/*ISoundOutput* soundOutput;
+	CreateSoundOutput(NULL, sampleRate, 32, &soundOutput);*/
 
 	//OPUS Init
 
-	streamPlayer = soundOutput->CreateStreamPlayer();
+	/*streamPlayer = soundOutput->CreateStreamPlayer();
 	streamPlayer->SetMaxDistance(100.f);
 	streamPlayer->SetMinDistance(30.f);
 
@@ -80,13 +107,19 @@ int main()
 			if (!streamPlayer2->Update())
 				return 1;
 		}
-	}).detach();
+	}).detach();*/
 	
 	while (1)
 	{
 		int key = getchar();
 		if (key == '1')
+		{
 			streamActive1 ^= 1;
+			if (streamActive1)
+				soundInput->EnableInput();
+			else
+				soundInput->DisableInput();
+		}
 		else if (key == '2')
 			streamActive2 ^= 1;
 	}

@@ -1,6 +1,6 @@
 #pragma once
 
-enum AltVoiceError
+enum class AltVoiceError
 {
 	Ok,
 	DeviceOpenError,
@@ -14,5 +14,6 @@ enum AltVoiceError
 	OpusEncoderCreateError,
 	OpusDecoderCreateError,
 	OpusBitrateSetError,
+	OpusSignalSetError,
 	DenoiseInitError
 };

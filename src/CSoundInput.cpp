@@ -2,9 +2,6 @@
 #include "CSoundInput.h"
 #include "CVoiceException.h"
 
-//#include <soxr-lsr.h>
-//#include <soxr.h>
-
 const CLSID CLSID_MMDeviceEnumerator = __uuidof(MMDeviceEnumerator);
 const IID IID_IMMDeviceEnumerator = __uuidof(IMMDeviceEnumerator);
 const IID IID_IAudioClient = __uuidof(IAudioClient);
@@ -53,7 +50,6 @@ void CSoundInput::OnVoiceInput()
 					for (int i = 0; i < silenceSize; i += sizeof(silence)) // Tell CopyData to write silence.
 					{
 						int bufSize = silenceSize > sizeof(silence) ? sizeof(silence) : silenceSize;
-
 						int resampledSize = sizeof(resampledBuffer);
 						hr = WWMFResamplerResample(resamplerInstance, silence, bufSize, resampledBuffer, &resampledSize);
 						if (!FAILED(hr) && resampledSize > 0)
@@ -92,6 +88,7 @@ void CSoundInput::OnVoiceInput()
 	}
 }
 
+//https://forum.juce.com/t/float-to-decibel-conversion/1841
 float CSoundInput::LinearToDecibel(float linear)
 {
 	if (linear != 0.0f)
@@ -103,18 +100,15 @@ float CSoundInput::LinearToDecibel(float linear)
 void CSoundInput::GainPCM(Sample* data, size_t framesCount)
 {
 	Sample maxFrame = 0;
-	bool maxFrameFound = false;
 	for (int i = 0; i < framesCount; ++i)
 	{
 		Sample s = abs(data[i]);
-		if (!maxFrameFound)
-			maxFrame = s;
-		else if (s > maxFrame)
+		if (s > maxFrame)
 			maxFrame = s;
 	}
 
-	float maxPossibleGain = (float)MAXSHORT / maxFrame;
-	float gain = min(maxPossibleGain, micGain);
+	float maxPossibleGain = (MAXSHORT - 10) / (float)maxFrame;
+	float gain = min(maxPossibleGain, micGain + 1);
 
 	for (int i = 0; i < framesCount; ++i)
 		data[i] *= gain;
@@ -122,10 +116,7 @@ void CSoundInput::GainPCM(Sample* data, size_t framesCount)
 
 void CSoundInput::OnPcmData(BYTE* data, size_t size, size_t framesCount)
 {
-	if (micGain != 1.f) GainPCM((Sample*)data, framesCount);
-
 	_ringBuffer->Write((const Sample*)data, framesCount);
-
 	while (_ringBuffer->BytesToRead() >= FRAME_SIZE_OPUS)
 	{
 		_ringBuffer->Read((Sample*)opusInputFrameBuffer, FRAME_SIZE_OPUS);
@@ -133,12 +124,20 @@ void CSoundInput::OnPcmData(BYTE* data, size_t size, size_t framesCount)
 		if (noiseSuppressionEnabled)
 			Denoise(opusInputFrameBuffer);
 
+		if(micGain < 0.99 || micGain > 1.01) GainPCM(opusInputFrameBuffer, FRAME_SIZE_OPUS);
 		if (rawCb) rawCb(opusInputFrameBuffer, FRAME_SIZE_OPUS * sizeof(Sample), 0);
+
+		int16_t micLevel = 0;
+		for (int i = 0; i < FRAME_SIZE_OPUS; ++i)
+		{
+			if (opusInputFrameBuffer[i] > micLevel)
+				micLevel = opusInputFrameBuffer[i];
+		}
 
 		int len = opus_encode(enc, opusInputFrameBuffer, FRAME_SIZE_OPUS, packet, MAX_PACKET_SIZE);
 
 		if (len < 0 || len > MAX_PACKET_SIZE) return;
-		if (cb) cb(packet, len, 0);
+		if (cb) cb(packet, len, (float)micLevel / MAXSHORT);
 	}
 }
 
@@ -146,9 +145,10 @@ void CSoundInput::Denoise(Sample* buffer)
 {
 	if (denoiseSt)
 	{
-		for (int i = 0; i < FRAME_SIZE_OPUS; ++i) floatBuffer[i] = buffer[i];
+		// pcm / 2 is an epic workaround on RNNoise distortion
+		for (int i = 0; i < FRAME_SIZE_OPUS; ++i) floatBuffer[i] = (float)buffer[i] / 2;
 		rnnoise_process_frame(denoiseSt, floatBuffer, floatBuffer);
-		for (int i = 0; i < FRAME_SIZE_OPUS; ++i) buffer[i] = floatBuffer[i];
+		for (int i = 0; i < FRAME_SIZE_OPUS; ++i) buffer[i] = floatBuffer[i] * 2;
 	}
 }
 
@@ -216,9 +216,6 @@ CSoundInput::CSoundInput(char* deviceName, int sampleRate, int framesPerBuffer, 
 	outputFormat.sampleRate = sampleRate;
 	outputFormat.validBitsPerSample = outputFormat.bits;
 
-	/*bool formatConfigured = ConfigureFormat(pwfx);
-	if(!formatConfigured) throw CVoiceException(AltVoiceError::DeviceOpenError);*/
-
 	hr = pAudioClient->Initialize(AUDCLNT_SHAREMODE_SHARED, 0, hnsRequestedDuration, 0, pwfx, NULL);
 	EXIT_ON_ERROR(hr, AltVoiceError::DeviceOpenError);
 
@@ -242,8 +239,8 @@ CSoundInput::CSoundInput(char* deviceName, int sampleRate, int framesPerBuffer, 
 	if (opus_encoder_ctl(enc, OPUS_SET_BITRATE(_bitRate)) != OPUS_OK)
 		EXIT_ON_ERROR(-1, AltVoiceError::OpusBitrateSetError);
 
-	/*if (opus_encoder_ctl(enc, OPUS_SET_SIGNAL(OPUS_SIGNAL_VOICE)) != OPUS_OK)
-		EXIT_ON_ERROR(-1, AltVoiceError::OpusSignalSetError);*/
+	if (opus_encoder_ctl(enc, OPUS_SET_SIGNAL(OPUS_SIGNAL_VOICE)) != OPUS_OK)
+		EXIT_ON_ERROR(-1, AltVoiceError::OpusSignalSetError);
 
 	transferBuffer = new Sample[_framesPerBuffer];
 

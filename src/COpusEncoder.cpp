@@ -7,6 +7,9 @@ COpusEncoder::COpusEncoder(int sampleRate, int channels)
 	encoder = opus_encoder_create(sampleRate, channels, OPUS_APPLICATION_VOIP, &opusErr);
 	if (opusErr != OPUS_OK || encoder == nullptr)
 		throw CVoiceException(AltVoiceError::OpusEncoderCreateError);
+
+	//opus_encoder_ctl(encoder, OPUS_SET_INBAND_FEC(1));
+	//opus_encoder_ctl(encoder, OPUS_SET_PACKET_LOSS_PERC(5));
 }
 
 COpusEncoder::~COpusEncoder()

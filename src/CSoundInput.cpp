@@ -228,9 +228,6 @@ CSoundInput::CSoundInput(char* deviceName, int sampleRate, int framesPerBuffer, 
 	hnsActualDuration = (double)RefTimesPerSec * bufferFrameCount / pwfx->nSamplesPerSec;
 	sleepTime = std::chrono::milliseconds(hnsActualDuration / RefTimesPerMillisec / 8);
 
-	threadActive = true;
-	inputStreamThread = new std::thread(&CSoundInput::OnVoiceInput, this);
-
 	int opusErr;
 	enc = opus_encoder_create(_sampleRate, 1, OPUS_APPLICATION_VOIP, &opusErr);
 	if (opusErr != OPUS_OK || enc == NULL)
@@ -247,6 +244,9 @@ CSoundInput::CSoundInput(char* deviceName, int sampleRate, int framesPerBuffer, 
 	denoiseSt = rnnoise_create(NULL);
 	if (!denoiseSt)
 		EXIT_ON_ERROR(-1, AltVoiceError::DenoiseInitError);
+
+	threadActive = true;
+	inputStreamThread = new std::thread(&CSoundInput::OnVoiceInput, this);
 
 Exit:
 	if (lastError != AltVoiceError::Ok)

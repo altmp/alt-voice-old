@@ -121,11 +121,12 @@ void CSoundInput::OnPcmData(BYTE* data, size_t size, size_t framesCount)
 	{
 		_ringBuffer->Read((Sample*)opusInputFrameBuffer, FRAME_SIZE_OPUS);
 
+		//micGain = 6;
+		//GainPCM(opusInputFrameBuffer, FRAME_SIZE_OPUS);
+		//if(micGain < 0.99 || micGain > 1.01) GainPCM(opusInputFrameBuffer, FRAME_SIZE_OPUS);
+
 		if (noiseSuppressionEnabled)
 			Denoise(opusInputFrameBuffer);
-
-		if(micGain < 0.99 || micGain > 1.01) GainPCM(opusInputFrameBuffer, FRAME_SIZE_OPUS);
-		if (rawCb) rawCb(opusInputFrameBuffer, FRAME_SIZE_OPUS * sizeof(Sample), 0);
 
 		int16_t micLevel = 0;
 		for (int i = 0; i < FRAME_SIZE_OPUS; ++i)
@@ -133,6 +134,10 @@ void CSoundInput::OnPcmData(BYTE* data, size_t size, size_t framesCount)
 			if (opusInputFrameBuffer[i] > micLevel)
 				micLevel = opusInputFrameBuffer[i];
 		}
+
+		Normalize(opusInputFrameBuffer, FRAME_SIZE_OPUS);
+
+		if (rawCb) rawCb(opusInputFrameBuffer, FRAME_SIZE_OPUS * sizeof(Sample), (float)micLevel / MAXSHORT);
 
 		int len = opus_encode(enc, opusInputFrameBuffer, FRAME_SIZE_OPUS, packet, MAX_PACKET_SIZE);
 
@@ -149,6 +154,33 @@ void CSoundInput::Denoise(Sample* buffer)
 		for (int i = 0; i < FRAME_SIZE_OPUS; ++i) floatBuffer[i] = (float)buffer[i] / 2;
 		rnnoise_process_frame(denoiseSt, floatBuffer, floatBuffer);
 		for (int i = 0; i < FRAME_SIZE_OPUS; ++i) buffer[i] = floatBuffer[i] * 2;
+	}
+}
+
+void CSoundInput::Normalize(Sample* buffer, size_t frameSize)
+{
+	Sample maxFrame = 0;
+	for (int i = 0; i < frameSize; ++i)
+	{
+		Sample s = abs(buffer[i]);
+		if (s > maxFrame)
+			maxFrame = s;
+	}
+
+	if (normalizeMax == 0.f || maxFrame > normalizeMax || normalizeMax / maxFrame < 0.5)
+		normalizeMax = maxFrame;
+	else
+		normalizeMax = (normalizeMax * (NORMALIZE_FRAME_COUNT - 1) + maxFrame) / NORMALIZE_FRAME_COUNT;
+
+	if (normalizeMax <= 1.f)
+		return;
+
+	float gain = float(MAXSHORT - 10) / normalizeMax;
+	gain = min(gain, 10);
+
+	for (int i = 0; i < frameSize; ++i)
+	{
+		buffer[i] *= gain;
 	}
 }
 
@@ -238,6 +270,9 @@ CSoundInput::CSoundInput(char* deviceName, int sampleRate, int framesPerBuffer, 
 
 	if (opus_encoder_ctl(enc, OPUS_SET_SIGNAL(OPUS_SIGNAL_VOICE)) != OPUS_OK)
 		EXIT_ON_ERROR(-1, AltVoiceError::OpusSignalSetError);
+
+	opus_encoder_ctl(enc, OPUS_SET_INBAND_FEC(1));
+	opus_encoder_ctl(enc, OPUS_SET_PACKET_LOSS_PERC(5));
 
 	transferBuffer = new Sample[_framesPerBuffer];
 

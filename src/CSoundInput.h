@@ -34,6 +34,8 @@ constexpr int RefTimesPerSec = RefTimesPerMillisec * 1000;
 
 class CSoundInput: public ISoundInput
 {
+	static constexpr int NORMALIZE_FRAME_COUNT = 20;
+
 	void OnVoiceInput();
 
 	WWMFPcmFormatMarshal inputFormat = { 0 };
@@ -91,11 +93,15 @@ class CSoundInput: public ISoundInput
 	std::atomic<bool> noiseSuppressionEnabled = false;
 	DenoiseState* denoiseSt = nullptr;
 
+	// Normalize stuff
+	float normalizeMax = 0.f;
+
 private:
 	float LinearToDecibel(float linear);
 	void GainPCM(Sample* data, size_t framesCount);
 	void OnPcmData(BYTE* data, size_t size, size_t framesCount);
 	void Denoise(Sample* buffer);
+	void Normalize(Sample* buffer, size_t frameSize);
 
 public:
 	CSoundInput(char* deviceName, int sampleRate, int framesPerBuffer, int bitrate);

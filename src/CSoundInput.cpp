@@ -176,12 +176,10 @@ void CSoundInput::Normalize(Sample* buffer, size_t frameSize)
 		return;
 
 	float gain = float(MAXSHORT - 10) / normalizeMax;
-	gain = min(gain, 10);
+	gain = min(gain, 20);
 
 	for (int i = 0; i < frameSize; ++i)
-	{
 		buffer[i] *= gain;
-	}
 }
 
 CSoundInput::CSoundInput(char* deviceName, int sampleRate, int framesPerBuffer, int bitrate): _sampleRate(sampleRate), _framesPerBuffer(framesPerBuffer), _bitRate(bitrate)

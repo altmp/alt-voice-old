@@ -270,7 +270,7 @@ CSoundInput::CSoundInput(char* deviceName, int sampleRate, int framesPerBuffer, 
 		EXIT_ON_ERROR(-1, AltVoiceError::OpusSignalSetError);
 
 	opus_encoder_ctl(enc, OPUS_SET_INBAND_FEC(1));
-	opus_encoder_ctl(enc, OPUS_SET_PACKET_LOSS_PERC(5));
+	opus_encoder_ctl(enc, OPUS_SET_PACKET_LOSS_PERC(10));
 
 	transferBuffer = new Sample[_framesPerBuffer];
 

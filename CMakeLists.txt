@@ -59,6 +59,8 @@ add_library(
   ${MFRESAMPLER_SOURCE_FILES}
 )
 
+set(AVX_SUPPORTED OFF)
+set(OPUS_X86_MAY_HAVE_AVX OFF)
 set(LIBTYPE STATIC)
 add_subdirectory(${PROJECT_SOURCE_DIR}/vendor/opus ${PROJECT_SOURCE_DIR}/libs/${CMAKE_BUILD_TYPE}/opus)
 add_subdirectory(${PROJECT_SOURCE_DIR}/vendor/rnnoise ${PROJECT_SOURCE_DIR}/libs/${CMAKE_BUILD_TYPE}/rnnoise)

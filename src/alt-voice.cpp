@@ -8,7 +8,6 @@
 #include "CVoiceException.h"
 
 //ISoundOutput* output = nullptr;
-ISoundInput* input = nullptr;
 
 char* GetInputDevicesEnum()
 {
@@ -70,18 +69,15 @@ char * GetNextDevice(char ** enumerator)
 
 AltVoiceError CreateSoundInput(char* deviceName, int sampleRate, int framesPerBuffer, int bitrate, ISoundInput ** soundInput)
 {
-	if (!input)
+	try
 	{
-		try
-		{
-			input = new CSoundInput(deviceName, sampleRate, framesPerBuffer, bitrate);
-		}
-		catch (const CVoiceException& e)
-		{
-			return e.GetCode();
-		}
+		*soundInput = new CSoundInput(deviceName, sampleRate, framesPerBuffer, bitrate);
 	}
-	*soundInput = input;
+	catch (const CVoiceException & e)
+	{
+		return e.GetCode();
+	}
+
 	return AltVoiceError::Ok;
 }
 
@@ -94,9 +90,7 @@ AltVoiceError CreateSoundInput(char* deviceName, int sampleRate, int framesPerBu
 
 void DestroySoundInput(ISoundInput * _input)
 {
-	if (input == _input)
-		delete input;
-	input = nullptr;
+	delete _input;
 }
 
 const char * GetVoiceErrorText(AltVoiceError error)

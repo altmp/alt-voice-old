@@ -266,7 +266,7 @@ CSoundInput::CSoundInput(char* deviceName, int sampleRate, int framesPerBuffer, 
 	if (opus_encoder_ctl(enc, OPUS_SET_BITRATE(_bitRate)) != OPUS_OK)
 		EXIT_ON_ERROR(-1, AltVoiceError::OpusBitrateSetError);
 
-	if (opus_encoder_ctl(enc, OPUS_SET_SIGNAL(OPUS_SIGNAL_VOICE)) != OPUS_OK)
+	if (opus_encoder_ctl(enc, OPUS_SET_SIGNAL(OPUS_SIGNAL_AUTO)) != OPUS_OK)
 		EXIT_ON_ERROR(-1, AltVoiceError::OpusSignalSetError);
 
 	opus_encoder_ctl(enc, OPUS_SET_INBAND_FEC(1));

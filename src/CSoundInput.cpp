@@ -1,4 +1,5 @@
 #include <chrono>
+#include <fstream>
 #include "CSoundInput.h"
 #include "CVoiceException.h"
 
@@ -84,7 +85,7 @@ void CSoundInput::OnVoiceInput()
 			}
 		}
 
-		std::this_thread::sleep_for(sleepTime);
+		std::this_thread::sleep_for(std::chrono::milliseconds{ 1 });
 	}
 }
 
@@ -121,10 +122,6 @@ void CSoundInput::OnPcmData(BYTE* data, size_t size, size_t framesCount)
 	{
 		_ringBuffer->Read((Sample*)opusInputFrameBuffer, FRAME_SIZE_OPUS);
 
-		//micGain = 6;
-		//GainPCM(opusInputFrameBuffer, FRAME_SIZE_OPUS);
-		//if(micGain < 0.99 || micGain > 1.01) GainPCM(opusInputFrameBuffer, FRAME_SIZE_OPUS);
-
 		if (noiseSuppressionEnabled)
 			Denoise(opusInputFrameBuffer);
 
@@ -134,8 +131,11 @@ void CSoundInput::OnPcmData(BYTE* data, size_t size, size_t framesCount)
 			if (opusInputFrameBuffer[i] > micLevel)
 				micLevel = opusInputFrameBuffer[i];
 		}
-
-		Normalize(opusInputFrameBuffer, FRAME_SIZE_OPUS);
+		
+		if (normalizationEnabled)
+			Normalize(opusInputFrameBuffer, FRAME_SIZE_OPUS);
+		else if (micGain < 0.99 || micGain > 1.01)
+			GainPCM(opusInputFrameBuffer, FRAME_SIZE_OPUS);
 
 		if (rawCb) rawCb(opusInputFrameBuffer, FRAME_SIZE_OPUS * sizeof(Sample), (float)micLevel / MAXSHORT);
 
@@ -151,8 +151,11 @@ void CSoundInput::Denoise(Sample* buffer)
 	if (denoiseSt)
 	{
 		// pcm / 2 is an epic workaround on RNNoise distortion
-		for (int i = 0; i < FRAME_SIZE_OPUS; ++i) floatBuffer[i] = (float)buffer[i] / 2;
-		rnnoise_process_frame(denoiseSt, floatBuffer, floatBuffer);
+		for (int i = 0; i < FRAME_SIZE_OPUS; ++i) floatBuffer[i] = buffer[i] / 2;
+
+		for (int i = 0; i < FRAME_SIZE_OPUS; i += 480)
+			rnnoise_process_frame(denoiseSt, floatBuffer + i, floatBuffer + i);
+
 		for (int i = 0; i < FRAME_SIZE_OPUS; ++i) buffer[i] = floatBuffer[i] * 2;
 	}
 }
@@ -175,8 +178,8 @@ void CSoundInput::Normalize(Sample* buffer, size_t frameSize)
 	if (normalizeMax <= 1.f)
 		return;
 
-	float gain = float(MAXSHORT - 10) / normalizeMax;
-	gain = min(gain, 20);
+	float gain = MAXSHORT / normalizeMax / 2;
+	gain = min(gain, 10);
 
 	for (int i = 0; i < frameSize; ++i)
 		buffer[i] *= gain;
@@ -266,11 +269,11 @@ CSoundInput::CSoundInput(char* deviceName, int sampleRate, int framesPerBuffer, 
 	if (opus_encoder_ctl(enc, OPUS_SET_BITRATE(_bitRate)) != OPUS_OK)
 		EXIT_ON_ERROR(-1, AltVoiceError::OpusBitrateSetError);
 
-	if (opus_encoder_ctl(enc, OPUS_SET_SIGNAL(OPUS_SIGNAL_VOICE)) != OPUS_OK)
-		EXIT_ON_ERROR(-1, AltVoiceError::OpusSignalSetError);
+	// if (opus_encoder_ctl(enc, OPUS_SET_SIGNAL(OPUS_SIGNAL_VOICE)) != OPUS_OK)
+	//	EXIT_ON_ERROR(-1, AltVoiceError::OpusSignalSetError);
 
 	opus_encoder_ctl(enc, OPUS_SET_INBAND_FEC(1));
-	opus_encoder_ctl(enc, OPUS_SET_PACKET_LOSS_PERC(10));
+	opus_encoder_ctl(enc, OPUS_SET_PACKET_LOSS_PERC(20));
 
 	transferBuffer = new Sample[_framesPerBuffer];
 
@@ -369,4 +372,10 @@ void CSoundInput::RegisterRawCallback(OnVoiceCallback callback)
 void CSoundInput::SetNoiseSuppressionStatus(bool enabled)
 {
 	noiseSuppressionEnabled = enabled;
+}
+
+void CSoundInput::SetNormalizationEnabled(bool enabled)
+{
+	normalizationEnabled = enabled;
+	normalizeMax = 0.f;
 }

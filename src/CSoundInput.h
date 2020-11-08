@@ -24,7 +24,7 @@
 #include "WWMFResampler.h"
 #include "WWMFResamplerCppIF.h"
 
-#define FRAME_SIZE_OPUS 480
+#define FRAME_SIZE_OPUS 960
 #define MAX_PACKET_SIZE 32768
 
 using Sample = int16_t;
@@ -94,6 +94,7 @@ class CSoundInput: public ISoundInput
 	DenoiseState* denoiseSt = nullptr;
 
 	// Normalize stuff
+	bool normalizationEnabled = true;
 	float normalizeMax = 0.f;
 
 private:
@@ -114,5 +115,6 @@ public:
 	void RegisterCallback(OnVoiceCallback callback) override;
 	void RegisterRawCallback(OnVoiceCallback callback) override;
 	void SetNoiseSuppressionStatus(bool enabled) override;
+	void SetNormalizationEnabled(bool enabled)override;
 };
 

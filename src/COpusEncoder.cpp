@@ -1,3 +1,4 @@
+#include "opus.h"
 #include "COpusEncoder.h"
 #include "CVoiceException.h"
 

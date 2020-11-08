@@ -14,4 +14,5 @@ public:
 	virtual void RegisterCallback(OnVoiceCallback callback) = 0;
 	virtual void RegisterRawCallback(OnVoiceCallback callback) = 0;
 	virtual void SetNoiseSuppressionStatus(bool enabled) = 0;
+	virtual void SetNormalizationEnabled(bool enabled) = 0;
 };

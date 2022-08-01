@@ -1,8 +1,6 @@
 #include "alt-voice.h"
 
-#include "CSoundOutput.h"
 #include "CSoundInput.h"
-#include "CStreamPlayer.h"
 #include "COpusEncoder.h"
 #include "COpusDecoder.h"
 #include "CVoiceException.h"

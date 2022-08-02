@@ -7,3 +7,6 @@
 [submodule "vendor/rnnoise"]
 	path = vendor/rnnoise
 	url = https://github.com/altmp/rnnoise-cmake.git
+[submodule "vendor/rtaudio"]
+	path = vendor/rtaudio
+	url = ../../thestk/rtaudio

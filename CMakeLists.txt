@@ -8,23 +8,14 @@ set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 include(cotire)
 
 if (MSVC)
-set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MD /GL /Zi /O2")
-set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MDd")
+    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MD /GL /Zi /O2")
+    set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MDd")
 endif()
 
 add_definitions(-DALT_VOICE_LIB)
 add_definitions(-D_NO_LOGS)
-#add_definitions(-DALT_LIB_STATIC)
-add_definitions(-D_MFRESAMPLER_STATIC)
-#add_definitions(-DCOMPILE_OPUS)
-#add_definitions(-DFIXED_POINT)
-#add_definitions(-DAL_LIBTYPE_STATIC)
 
-file(GLOB_RECURSE PROJECT_SOURCE_FILES "src/*.h" "src/*.cpp" "include/*.h")
-file(GLOB_RECURSE MFRESAMPLER_SOURCE_FILES 
-	"${PROJECT_SOURCE_DIR}/vendor/mfresampler/src/*.h"
-	"${PROJECT_SOURCE_DIR}/vendor/mfresampler/src/*.cpp"
-)
+file(GLOB_RECURSE PROJECT_SOURCE_FILES "src/*.h" "src/*.cpp" "include/*.h" "vendor/rnnoise/src/*.c" "vendor/rnnoise/src/*.h")
 
 macro(GroupSources curdir groupindex)
   file(GLOB children RELATIVE ${curdir} ${curdir}/*)
@@ -42,45 +33,37 @@ macro(GroupSources curdir groupindex)
 endmacro()
 
 GroupSources(${PROJECT_SOURCE_DIR}/src "Source Files")
-GroupSources(${PROJECT_SOURCE_DIR}/vendor/mfresampler/src/ "MFResampler Source")
 GroupSources(${PROJECT_SOURCE_DIR}/include "Include")
+GroupSources(${PROJECT_SOURCE_DIR}/vendor/rnnoise/src "rnnoise")
 
 include_directories(
   ${PROJECT_SOURCE_DIR}/src
   ${PROJECT_SOURCE_DIR}/include
-  ${PROJECT_SOURCE_DIR}/vendor/mfresampler/src/
   ${PROJECT_SOURCE_DIR}/vendor/opus/include/
   ${PROJECT_SOURCE_DIR}/vendor/rnnoise/include/
+  ${PROJECT_SOURCE_DIR}/vendor/rtaudio
 )
 
-add_library(
-  ${PROJECT_NAME} SHARED
-  ${PROJECT_SOURCE_FILES}
-  ${MFRESAMPLER_SOURCE_FILES}
-)
+add_library(${PROJECT_NAME} SHARED ${PROJECT_SOURCE_FILES})
 
+#rnnoise bullshit
+add_definitions(-DCOMPILE_OPUS)
+
+#opus
 set(AVX_SUPPORTED OFF)
 set(OPUS_X86_MAY_HAVE_AVX OFF)
 set(LIBTYPE STATIC)
 add_subdirectory(${PROJECT_SOURCE_DIR}/vendor/opus ${PROJECT_SOURCE_DIR}/libs/${CMAKE_BUILD_TYPE}/opus)
-add_subdirectory(${PROJECT_SOURCE_DIR}/vendor/rnnoise ${PROJECT_SOURCE_DIR}/libs/${CMAKE_BUILD_TYPE}/rnnoise)
 
-if (WIN32)
-target_link_libraries(${PROJECT_NAME}
-	dxva2.lib
-	evr.lib
-	mf.lib
-	mfplat.lib
-	mfplay.lib
-	mfreadwrite.lib
-	mfuuid.lib
-	wmcodecdspuuid.lib
-  )
-endif()
+#rtaudio
+set(RTAUDIO_API_DS ON CACHE BOOL "Build DirectSound API")
+set(RTAUDIO_API_WASAPI ON CACHE BOOL "Build WASAPI API")
+set(RTAUDIO_BUILD_TESTING OFF)
+set(RTAUDIO_BUILD_SHARED_LIBS OFF)
+set(RTAUDIO_BUILD_STATIC_LIBS ON)
+add_subdirectory(${PROJECT_SOURCE_DIR}/vendor/rtaudio rtaudio)
 
-#target_link_libraries(${PROJECT_NAME} OpenAL)
-target_link_libraries(${PROJECT_NAME} opus)
-target_link_libraries(${PROJECT_NAME} rnnoise)
+target_link_libraries(${PROJECT_NAME} opus rtaudio)
 
 #Tests
 if(BUILD_TESTS)
@@ -88,19 +71,6 @@ if(BUILD_TESTS)
     3d-two-sources
     ${PROJECT_SOURCE_DIR}/examples/3d-two-sources.cpp
   )
-  #if (WIN32)
-  # target_link_libraries(3d-two-sources
-    # WinMM.lib
-	# dxva2.lib
-	# evr.lib
-	# mf.lib
-	# mfplat.lib
-	# mfplay.lib
-	# mfreadwrite.lib
-	# mfuuid.lib
-	# wmcodecdspuuid.lib
-  # )
-  # endif()
   target_link_libraries(3d-two-sources alt-voice)
 endif()
 

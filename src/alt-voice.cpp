@@ -4,66 +4,17 @@
 #include "COpusEncoder.h"
 #include "COpusDecoder.h"
 #include "CVoiceException.h"
+#include "CDeviceManager.h"
 
-//ISoundOutput* output = nullptr;
-
-char* GetInputDevicesEnum()
+std::vector<std::string> GetInputDevicesEnum()
 {
-	/*char *devName = nullptr;
-	if (alcIsExtensionPresent(NULL, "ALC_enumeration_EXT") == AL_TRUE)
-		devName = (char *)alcGetString(NULL, ALC_CAPTURE_DEVICE_SPECIFIER);
-	return devName;*/
-	return "";
+	return g_deviceManager.GetInputDevices();
 }
 
-char* GetOutputDevicesEnum()
+std::vector<std::string> GetOutputDevicesEnum()
 {
-	/*char *devName = nullptr;
-	if (alcIsExtensionPresent(NULL, "ALC_enumeration_EXT") == AL_TRUE)
-	{
-		if (alcIsExtensionPresent(NULL, "ALC_enumerate_all_EXT") == AL_FALSE)
-			devName = (char *)alcGetString(NULL, ALC_DEVICE_SPECIFIER);
-		else
-			devName = (char *)alcGetString(NULL, ALC_ALL_DEVICES_SPECIFIER);
-	}
-	return devName;*/
-	return nullptr;
+	return g_deviceManager.GetInputDevices();
 }
-
-char * GetNextDevice(char ** enumerator)
-{
-	/*if(!enumerator || !*enumerator)
-		return nullptr;
-
-	char* deviceName = *enumerator;
-
-	if (deviceName && deviceName != '\0')
-	{
-		size_t devNameLength = strlen(deviceName);
-		*enumerator += (devNameLength + 1);
-		return deviceName;
-	}
-	else
-		return nullptr;*/
-	return nullptr;
-}
-
-//AltVoiceError CreateSoundOutput(char* deviceName, int sampleRate, int sourcesCount, ISoundOutput ** soundOutput)
-//{
-//	if (!output)
-//	{
-//		try 
-//		{
-//			output = new CSoundOutput(deviceName, sampleRate, sourcesCount);
-//		}
-//		catch (const CVoiceException& e)
-//		{
-//			return e.GetCode();
-//		}
-//	}
-//	*soundOutput = output;
-//	return AltVoiceError::Ok;
-//}
 
 AltVoiceError CreateSoundInput(char* deviceName, int sampleRate, int framesPerBuffer, int bitrate, ISoundInput ** soundInput)
 {
@@ -78,13 +29,6 @@ AltVoiceError CreateSoundInput(char* deviceName, int sampleRate, int framesPerBu
 
 	return AltVoiceError::Ok;
 }
-
-//void DestroySoundOutput(ISoundOutput * _output)
-//{
-//	if (output == _output)
-//		delete output;
-//	output = nullptr;
-//}
 
 void DestroySoundInput(ISoundInput * _input)
 {
@@ -127,11 +71,11 @@ const char * GetVoiceErrorText(AltVoiceError error)
 	return "Unknown error";
 }
 
-ALT_VOICE_API AltVoiceError CreateOpusEncoder(int sampleRate, int channelsCount, IOpusEncoder** opusEncoder)
+ALT_VOICE_API AltVoiceError CreateOpusEncoder(int sampleRate, int channelsCount, IOpusEncoder** opusEncoder, int bitRate)
 {
 	try
 	{
-		IOpusEncoder* encoder = new COpusEncoder(sampleRate, channelsCount);
+		IOpusEncoder* encoder = new COpusEncoder(sampleRate, channelsCount, bitRate);
 		*opusEncoder = encoder;
 		return AltVoiceError::Ok;
 	}

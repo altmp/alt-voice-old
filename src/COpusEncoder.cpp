@@ -2,15 +2,18 @@
 #include "COpusEncoder.h"
 #include "CVoiceException.h"
 
-COpusEncoder::COpusEncoder(int sampleRate, int channels)
+COpusEncoder::COpusEncoder(int sampleRate, int channels, int bitRate)
 {
 	int opusErr;
 	encoder = opus_encoder_create(sampleRate, channels, OPUS_APPLICATION_VOIP, &opusErr);
 	if (opusErr != OPUS_OK || encoder == nullptr)
 		throw CVoiceException(AltVoiceError::OpusEncoderCreateError);
 
-	//opus_encoder_ctl(encoder, OPUS_SET_INBAND_FEC(1));
-	//opus_encoder_ctl(encoder, OPUS_SET_PACKET_LOSS_PERC(5));
+	if (opus_encoder_ctl(encoder, OPUS_SET_BITRATE(bitRate)) != OPUS_OK)
+		throw CVoiceException(AltVoiceError::OpusBitrateSetError);
+
+	opus_encoder_ctl(encoder, OPUS_SET_INBAND_FEC(1));
+	opus_encoder_ctl(encoder, OPUS_SET_PACKET_LOSS_PERC(20));
 }
 
 COpusEncoder::~COpusEncoder()

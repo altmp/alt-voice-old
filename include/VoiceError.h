@@ -15,5 +15,8 @@ enum class AltVoiceError
 	OpusDecoderCreateError,
 	OpusBitrateSetError,
 	OpusSignalSetError,
-	DenoiseInitError
+	DenoiseInitError,
+	RtAudioError_OpenStream,
+	RtAudioError_StartStream,
+	RtAudioError_MissingDevice
 };

@@ -20,19 +20,17 @@
     #endif
 #endif
 
+
 #if defined(__cplusplus)
 extern "C" {
 #endif
 
-//ALT_VOICE_API char* GetInputDevicesEnum();
-//ALT_VOICE_API char* GetOutputDevicesEnum();
-//ALT_VOICE_API char* GetNextDevice(char** enumerator);
-//ALT_VOICE_API AltVoiceError CreateSoundOutput(char* deviceName, int sampleRate, int sourcesCount, ISoundOutput** soundOutput);
+//ALT_VOICE_API std::vector<std::string> GetInputDevicesEnum();
+//ALT_VOICE_API std::vector<std::string> GetOutputDevicesEnum();
 ALT_VOICE_API AltVoiceError CreateSoundInput(char* deviceName, int sampleRate, int framesPerBuffer, int bitrate, ISoundInput** soundInput);
-//ALT_VOICE_API void DestroySoundOutput(ISoundOutput* output);
 ALT_VOICE_API void DestroySoundInput(ISoundInput* input);
 ALT_VOICE_API const char* GetVoiceErrorText(AltVoiceError error);
-ALT_VOICE_API AltVoiceError CreateOpusEncoder(int sampleRate, int channelsCount, IOpusEncoder** opusEncoder);
+ALT_VOICE_API AltVoiceError CreateOpusEncoder(int sampleRate, int channelsCount, IOpusEncoder** opusEncoder, int bitRate);
 ALT_VOICE_API AltVoiceError CreateOpusDecoder(int sampleRate, int channelsCount, IOpusDecoder** opusDecoder);
 ALT_VOICE_API void DestroyOpusEncoder(IOpusEncoder* opusEncoder);
 ALT_VOICE_API void DestroyOpusDecoder(IOpusDecoder* opusDecoder);

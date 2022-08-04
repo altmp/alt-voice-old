@@ -66,6 +66,7 @@ class CSoundInput: public ISoundInput
 	float normalizeMax = 0.f;
 
 private:
+	double GetSignalMultiplierForVolume(double volume);
 	float LinearToDecibel(float linear);
 	void GainPCM(Sample* data, size_t framesCount);
 	void OnPcmData(int16_t* data, uint32_t framesCount);

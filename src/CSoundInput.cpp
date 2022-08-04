@@ -15,21 +15,16 @@ float CSoundInput::LinearToDecibel(float linear)
 		return -144.0f;  // effectively minus infinity
 }
 
+double CSoundInput::GetSignalMultiplierForVolume(double volume) 
+{	//https://github.com/almoghamdani/audify/blob/master/src/rt_audio.cpp#L422
+	// Explained here: https://stackoverflow.com/a/1165188
+	return (std::pow(10, volume) - 1) / (10 - 1);
+}
+
 void CSoundInput::GainPCM(Sample* data, size_t framesCount)
 {
-	Sample maxFrame = 0;
 	for (int i = 0; i < framesCount; ++i)
-	{
-		Sample s = abs(data[i]);
-		if (s > maxFrame)
-			maxFrame = s;
-	}
-
-	float maxPossibleGain = (MAXSHORT - 10) / (float)maxFrame;
-	float gain = min(maxPossibleGain, micGain + 1);
-
-	for (int i = 0; i < framesCount; ++i)
-		data[i] *= gain;
+		data[i] *= micGain;
 }
 
 void CSoundInput::OnPcmData(int16_t* data, uint32_t framesCount)
@@ -51,8 +46,8 @@ void CSoundInput::OnPcmData(int16_t* data, uint32_t framesCount)
 		
 		if (normalizationEnabled)
 			Normalize(opusInputFrameBuffer, FRAME_SIZE_OPUS);
-		else if (micGain < 0.99 || micGain > 1.01)
-			GainPCM(opusInputFrameBuffer, FRAME_SIZE_OPUS);
+		
+		GainPCM(opusInputFrameBuffer, FRAME_SIZE_OPUS);
 
 		if (rawCb) rawCb(opusInputFrameBuffer, FRAME_SIZE_OPUS * sizeof(Sample), (float)micLevel / MAXSHORT);
 
@@ -172,7 +167,7 @@ bool CSoundInput::DisableInput()
 
 void CSoundInput::ChangeMicGain(float gain)
 {
-	micGain = LinearToDecibel(gain);
+	micGain = GetSignalMultiplierForVolume(gain);
 }
 
 bool CSoundInput::ChangeDevice(char * deviceName)

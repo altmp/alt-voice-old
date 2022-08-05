@@ -23,6 +23,17 @@ public:
 		delete[] _buffer;
 	}
 
+	void Clear()
+	{
+		_accessMutex.lock();
+
+		_writeCursor = 0;
+		_readCursor = 0;
+		memset(_buffer, 0, BufferSize * sizeof(T));
+
+		_accessMutex.unlock();
+	}
+
 	void Write(const T* buffer, size_t count)
 	{
 		_accessMutex.lock();

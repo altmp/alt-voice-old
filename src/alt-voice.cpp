@@ -1,28 +1,32 @@
 #include "alt-voice.h"
 
 #include "CSoundInput.h"
+#include "CSoundOutput.h"
 #include "COpusEncoder.h"
 #include "COpusDecoder.h"
 #include "CVoiceException.h"
-#include "CDeviceManager.h"
 
-std::vector<std::string> GetInputDevicesEnum()
-{
-	return g_deviceManager.GetInputDevices();
-}
-
-std::vector<std::string> GetOutputDevicesEnum()
-{
-	return g_deviceManager.GetInputDevices();
-}
-
-AltVoiceError CreateSoundInput(char* deviceName, int sampleRate, int framesPerBuffer, int bitrate, ISoundInput ** soundInput)
+AltVoiceError CreateSoundInput(int sampleRate, int framesPerBuffer, int bitrate, ISoundInput** soundInput)
 {
 	try
 	{
-		*soundInput = new CSoundInput(deviceName, sampleRate, framesPerBuffer, bitrate);
+		*soundInput = new CSoundInput(sampleRate, framesPerBuffer, bitrate);
 	}
-	catch (const CVoiceException & e)
+	catch (const CVoiceException& e)
+	{
+		return e.GetCode();
+	}
+
+	return AltVoiceError::Ok;
+}
+
+AltVoiceError CreateSoundOutput(int sampleRate, int framesPerBuffer, int bitrate, ISoundOutput** soundOutput)
+{
+	try
+	{
+		*soundOutput = new CSoundOutput(sampleRate, framesPerBuffer, bitrate);
+	}
+	catch (const CVoiceException& e)
 	{
 		return e.GetCode();
 	}

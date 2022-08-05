@@ -33,11 +33,11 @@ GroupSources(${PROJECT_SOURCE_DIR}/include "Include")
 GroupSources(${PROJECT_SOURCE_DIR}/vendor/rnnoise/src "rnnoise")
 
 include_directories(
-  ${PROJECT_SOURCE_DIR}/src
-  ${PROJECT_SOURCE_DIR}/include
-  ${PROJECT_SOURCE_DIR}/vendor/opus/include/
-  ${PROJECT_SOURCE_DIR}/vendor/rnnoise/include/
-  ${PROJECT_SOURCE_DIR}/vendor/rtaudio
+    ${PROJECT_SOURCE_DIR}/src
+    ${PROJECT_SOURCE_DIR}/include
+    ${PROJECT_SOURCE_DIR}/vendor/opus/include/
+    ${PROJECT_SOURCE_DIR}/vendor/rnnoise/include/
+    ${PROJECT_SOURCE_DIR}/vendor/rtaudio
 )
 
 add_library(${PROJECT_NAME} SHARED 
@@ -72,17 +72,27 @@ add_subdirectory(${PROJECT_SOURCE_DIR}/vendor/rtaudio rtaudio)
 
 target_link_libraries(${PROJECT_NAME} opus rtaudio)
 
+set(BUILD_TESTS ON)
+
 #Tests
 if(BUILD_TESTS)
-  add_executable(
-    3d-two-sources
-    ${PROJECT_SOURCE_DIR}/examples/3d-two-sources.cpp
-  )
-  target_link_libraries(3d-two-sources alt-voice)
+    add_executable(
+        devicetests
+        ${PROJECT_SOURCE_DIR}/examples/devicetests.cpp
+    )
+    target_link_libraries(devicetests alt-voice)
+
+    set_target_properties(devicetests PROPERTIES
+        CXX_STANDARD 17
+        RUNTIME_OUTPUT_DIRECTORY_DEBUG "${PROJECT_SOURCE_DIR}/bin/Debug/"
+        RUNTIME_OUTPUT_DIRECTORY_RELEASE "${PROJECT_SOURCE_DIR}/bin/Release/"
+    )
 endif()
 
 set_target_properties(${PROJECT_NAME} PROPERTIES
-  CXX_STANDARD 17
-  RUNTIME_OUTPUT_DIRECTORY_DEBUG "${PROJECT_SOURCE_DIR}/bin/Debug/"
-  RUNTIME_OUTPUT_DIRECTORY_RELEASE "${PROJECT_SOURCE_DIR}/bin/Release/"
+    CXX_STANDARD 17
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${PROJECT_SOURCE_DIR}/bin/Debug/"
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${PROJECT_SOURCE_DIR}/bin/Release/"
+    ARCHIVE_OUTPUT_DIRECTORY_DEBUG "${PROJECT_SOURCE_DIR}/bin/Debug/"
+    ARCHIVE_OUTPUT_DIRECTORY_RELEASE "${PROJECT_SOURCE_DIR}/bin/Release/"
 )

@@ -1,10 +1,12 @@
 #pragma once
 //#include "IStreamPlayer.h"
-//#include "ISoundOutput.h"
+#include "ISoundOutput.h"
 #include "ISoundInput.h"
 #include "IOpusEncoder.h"
 #include "IOpusDecoder.h"
 #include "VoiceError.h"
+#include <vector>
+#include <string>
 
 #ifndef ALT_VOICE_API
     #if defined(ALT_LIB_STATIC)
@@ -20,14 +22,11 @@
     #endif
 #endif
 
-
 #if defined(__cplusplus)
 extern "C" {
 #endif
-
-//ALT_VOICE_API std::vector<std::string> GetInputDevicesEnum();
-//ALT_VOICE_API std::vector<std::string> GetOutputDevicesEnum();
-ALT_VOICE_API AltVoiceError CreateSoundInput(char* deviceName, int sampleRate, int framesPerBuffer, int bitrate, ISoundInput** soundInput);
+ALT_VOICE_API AltVoiceError CreateSoundOutput(int sampleRate, int framesPerBuffer, int bitrate, ISoundOutput** soundOutput);
+ALT_VOICE_API AltVoiceError CreateSoundInput(int sampleRate, int framesPerBuffer, int bitrate, ISoundInput** soundInput);
 ALT_VOICE_API void DestroySoundInput(ISoundInput* input);
 ALT_VOICE_API const char* GetVoiceErrorText(AltVoiceError error);
 ALT_VOICE_API AltVoiceError CreateOpusEncoder(int sampleRate, int channelsCount, IOpusEncoder** opusEncoder, int bitRate);

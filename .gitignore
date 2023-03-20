@@ -5,3 +5,4 @@ libs/
 .vs
 .vscode
 build
+.xmake

@@ -1,4 +1,4 @@
-#include "opus.h"
+#include <opus/opus.h>
 #include "COpusEncoder.h"
 #include "CVoiceException.h"
 

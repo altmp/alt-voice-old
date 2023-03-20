@@ -13,7 +13,7 @@ char* GetInputDevicesEnum()
 	if (alcIsExtensionPresent(NULL, "ALC_enumeration_EXT") == AL_TRUE)
 		devName = (char *)alcGetString(NULL, ALC_CAPTURE_DEVICE_SPECIFIER);
 	return devName;*/
-	return "";
+	return (char*)"";
 }
 
 char* GetOutputDevicesEnum()

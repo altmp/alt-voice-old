@@ -15,7 +15,7 @@
 
 #pragma comment(lib, "ole32.lib")
 
-#include <opus.h>
+#include <opus/opus.h>
 
 #include "ISoundInput.h"
 #include "CRingBuffer.h"

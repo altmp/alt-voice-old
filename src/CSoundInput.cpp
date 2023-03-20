@@ -192,6 +192,10 @@ CSoundInput::CSoundInput(char* deviceName, int sampleRate, int framesPerBuffer, 
 
 	_ringBuffer = new RingBuffer<Sample>(sampleRate * 2);
 
+	REFERENCE_TIME hnsRequestedDuration = RefTimesPerSec;
+	REFERENCE_TIME hnsActualDuration;
+	UINT32 bufferFrameCount;
+
 	static bool _coInitialized = false;
 	if (!_coInitialized)
 	{
@@ -199,10 +203,6 @@ CSoundInput::CSoundInput(char* deviceName, int sampleRate, int framesPerBuffer, 
 		EXIT_ON_ERROR(hr, AltVoiceError::DeviceOpenError);
 		_coInitialized = true;
 	}
-
-	REFERENCE_TIME hnsRequestedDuration = RefTimesPerSec;
-	REFERENCE_TIME hnsActualDuration;
-	UINT32 bufferFrameCount;
 
 	hr = CoCreateInstance(CLSID_MMDeviceEnumerator, NULL, CLSCTX_ALL, IID_IMMDeviceEnumerator, (void**)&pEnumerator);
 	EXIT_ON_ERROR(hr, AltVoiceError::DeviceOpenError);

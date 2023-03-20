@@ -1,6 +1,6 @@
 #pragma once
 #include "IOpusEncoder.h"
-#include <opus.h>
+#include <opus/opus.h>
 
 class COpusEncoder : public IOpusEncoder
 {
